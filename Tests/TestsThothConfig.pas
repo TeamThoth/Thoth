@@ -86,6 +86,8 @@ begin
   Assert.AreEqual(Conf.TestWS.Int, 20);
   Assert.AreEqual(Conf.WindowBounds.Left, 30);
 
+  Assert.AreEqual(Conf.Dbl, Double(10.23));
+
   Conf.Free;
 end;
 
