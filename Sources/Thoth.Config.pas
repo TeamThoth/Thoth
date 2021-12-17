@@ -3,16 +3,19 @@ unit Thoth.Config;
 interface
 
 uses
+  Thoth.Classes,
   Thoth.Config.Types,
   Thoth.Config.Loader;
 
 type
-  TThothConfig = class(TInterfacedObject, IConfig)
+  TThothConfig = class(TNoRefCountObject, IConfig)
   private
     FConfigName: string;
     FLoader: IConfigLoader;
     function GetConfigName: string;
     procedure SetConfigName(const Value: string);
+  protected
+    procedure CheckLoader;
   public
     constructor Create(AConfigName: string = ''); overload;
 
@@ -25,14 +28,23 @@ type
     constructor Create(ACreateFunc: TConfigLoaderCreateFunc); overload;
     constructor Create(AConfigName: string; ACreateFunc: TConfigLoaderCreateFunc); overload;
 
+    procedure Load;
+    procedure Save;
+
     property ConfigName: string read GetConfigName write SetConfigName;
+
+    destructor Destroy; override;
+    class function DefaultLoader: IConfigLoader;
   end;
 
 implementation
 
 uses
+  System.SysUtils,
+  Thoth.ResourceStrings,
   Thoth.Utils,
-  Thoth.Config.Attr;
+  Thoth.Config.Loader.IniFile // Default loader
+;
 
 { TCustomConfig }
 
@@ -56,6 +68,12 @@ begin
   Create('', ALoader);
 end;
 
+procedure TThothConfig.CheckLoader;
+begin
+  if not Assigned(FLoader) then
+    raise Exception.CreateFmt(SNotAssigned, ['loader']);
+end;
+
 constructor TThothConfig.Create(AConfigName: string;
   ACreateFunc: TConfigLoaderCreateFunc);
 begin
@@ -66,12 +84,28 @@ constructor TThothConfig.Create(AConfigName: string; ALoader: IConfigLoader);
 begin
   FConfigName := AConfigName;
   FLoader := ALoader;
+  if Assigned(FLoader) then
+    FLoader.SetConfig(Self);
 end;
 
 constructor TThothConfig.Create(AConfigName: string;
   ALoaderClass: TConfigLoaderClass);
 begin
   Create(AConfigName, ALoaderClass.Create  as IConfigLoader);
+end;
+
+procedure TThothConfig.Load;
+begin
+  CheckLoader;
+
+  FLoader.LoadConfig;
+end;
+
+procedure TThothConfig.Save;
+begin
+  CheckLoader;
+
+  FLoader.SaveConfig;
 end;
 
 function TThothConfig.GetConfigName: string;
@@ -91,6 +125,19 @@ end;
 procedure TThothConfig.SetConfigName(const Value: string);
 begin
   FConfigName := Value;
+end;
+
+class function TThothConfig.DefaultLoader: IConfigLoader;
+begin
+  Result := TIniFileConfigLoader.Create;
+end;
+
+destructor TThothConfig.Destroy;
+begin
+  if Assigned(FLoader) then
+    FreeAndNil(TObject(FLoader));
+
+  inherited;
 end;
 
 end.

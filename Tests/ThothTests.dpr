@@ -20,8 +20,9 @@ uses
   Thoth.LiveData in '..\Sources\Thoth.LiveData.pas',
   TestsThothLIveData in 'TestsThothLIveData.pas',
   Thoth.Config.Loader.IniFile in '..\Sources\Thoth.Config.Loader.IniFile.pas',
-  Thoth.Config.Attr in '..\Sources\Thoth.Config.Attr.pas',
-  Thoth.Utils in '..\Sources\Thoth.Utils.pas';
+  Thoth.Utils in '..\Sources\Thoth.Utils.pas',
+  Thoth.Classes in '..\Sources\Thoth.Classes.pas',
+  Thoth.ResourceStrings in '..\Sources\Thoth.ResourceStrings.pas';
 
 {$IFNDEF TESTINSIGHT}
 var
