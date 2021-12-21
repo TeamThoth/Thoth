@@ -4,8 +4,7 @@ interface
 
 uses
   Thoth.Classes,
-  Thoth.Config.Types,
-  Thoth.Config.Loader;
+  Thoth.Config.Types;
 
 type
   TThothConfig = class(TNoRefCountObject, IConfig)
@@ -22,14 +21,13 @@ type
     constructor Create(ALoader: IConfigLoader); overload;
     constructor Create(AConfigName: string; ALoader: IConfigLoader); overload;
 
-    constructor Create(ALoaderClass: TConfigLoaderClass); overload;
-    constructor Create(AConfigName: string; ALoaderClass: TConfigLoaderClass); overload;
-
     constructor Create(ACreateFunc: TConfigLoaderCreateFunc); overload;
     constructor Create(AConfigName: string; ACreateFunc: TConfigLoaderCreateFunc); overload;
 
     procedure Load;
     procedure Save;
+
+    procedure Clear;
 
     property ConfigName: string read GetConfigName write SetConfigName;
 
@@ -53,11 +51,6 @@ begin
   FConfigName := AConfigName;
 end;
 
-constructor TThothConfig.Create(ALoaderClass: TConfigLoaderClass);
-begin
-  Create('', ALoaderClass);
-end;
-
 constructor TThothConfig.Create(ACreateFunc: TConfigLoaderCreateFunc);
 begin
   Create('', ACreateFunc);
@@ -66,12 +59,6 @@ end;
 constructor TThothConfig.Create(ALoader: IConfigLoader);
 begin
   Create('', ALoader);
-end;
-
-procedure TThothConfig.CheckLoader;
-begin
-  if not Assigned(FLoader) then
-    raise Exception.CreateFmt(SNotAssigned, ['loader']);
 end;
 
 constructor TThothConfig.Create(AConfigName: string;
@@ -88,10 +75,17 @@ begin
     FLoader.SetConfig(Self);
 end;
 
-constructor TThothConfig.Create(AConfigName: string;
-  ALoaderClass: TConfigLoaderClass);
+procedure TThothConfig.CheckLoader;
 begin
-  Create(AConfigName, ALoaderClass.Create  as IConfigLoader);
+  if not Assigned(FLoader) then
+    raise Exception.CreateFmt(SNotAssigned, ['loader']);
+end;
+
+procedure TThothConfig.Clear;
+begin
+  CheckLoader;
+
+  FLoader.ClearData;
 end;
 
 procedure TThothConfig.Load;

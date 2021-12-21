@@ -12,7 +12,11 @@ type
     [Setup]     procedure Setup;
     [TearDown]  procedure TearDown;
 
-    [Test]      procedure TestInitIniConfig;
+//    [Test]
+    procedure TestInitIniConfig;
+
+    [Test]
+    procedure TestSaveIniConfig;
   end;
 
 implementation
@@ -20,6 +24,7 @@ implementation
 uses
   Thoth.Config.Types,
   Thoth.Config, Thoth.Config.Loader.IniFile,
+  System.SysUtils, System.IniFiles,
   Vcl.Forms, System.Types;
 
 type
@@ -50,12 +55,13 @@ type
     property Bool: Boolean read FBool write FBool;
 
     [EnumItem('TestSect', 'wsMaximized')]
+    [KeyName('WS')]
     property WindowState: TWindowState read FWindowState write FWindowState;
 
     [RecItem('TestSect', 'WS, Int', 'wsMinimized, 20')]
     property TestWS: TTestWS read FTestWS write FTestWS;
 
-    [RecItem('TestSect', 'Left, Top', '30,40')]
+    [RecordItem('TestSect', 'Left, Top', '30,40')]
     property WindowBounds: TRect read FWindowBounds write FWindowBounds;
 
     [DateTimeItem('TestSect')]
@@ -79,15 +85,42 @@ var
 begin
   Conf := TIniConfig.Create(TIniConfig.DefaultLoader);
 
+  Conf.Clear;
   Conf.Load;
 
   Assert.AreEqual(Conf.Int, 10);
   Assert.AreEqual(Conf.Str, 'abcd');
+  Assert.AreEqual(Conf.WindowState, wsMaximized);
   Assert.AreEqual(Conf.TestWS.Int, 20);
   Assert.AreEqual(Conf.WindowBounds.Left, 30);
 
   Assert.AreEqual(Conf.Dbl, Double(10.23));
 
+  Conf.Free;
+end;
+
+procedure TThothConfigTest.TestSaveIniConfig;
+var
+  Conf: TIniConfig;
+  IniFile: TIniFile;
+begin
+  Conf := TIniConfig.Create(TIniConfig.DefaultLoader);
+
+  Conf.Load;
+
+  Conf.Int := 100;
+  Conf.Str := '가나다';
+  Conf.WindowState := TWindowState.wsMinimized;
+
+  Conf.Save;
+
+  IniFile := TIniFile.Create(ExtractFilePath(Paramstr(0)) + 'ThConfig.ini');
+
+  Assert.AreEqual(IniFile.ReadInteger('TestSect', 'Int', 0), 100);
+  Assert.AreEqual(IniFile.ReadString('TestSect', 'Str', ''), '가나다');
+  Assert.AreEqual(TWindowState(IniFile.ReadInteger('TestSect', 'WS', 0)), wsMinimized);
+
+  IniFile.Free;
   Conf.Free;
 end;
 
