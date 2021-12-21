@@ -3,6 +3,7 @@ unit Thoth.Config.Types;
 interface
 
 uses
+  System.SysUtils,
   System.Rtti;
 
 type
@@ -17,10 +18,13 @@ type
   ['{F8551D93-54E6-4534-A13C-2F6E2941AFD8}']
     procedure LoadConfig;
     procedure SaveConfig;
+    procedure ClearData;
 
     procedure SetConfig(const Value: IConfig);
 //    property Config: IConfig write SetConfig;
   end;
+
+  TConfigLoaderCreateFunc = TFunc<IConfigLoader>;
 
   {$REGION 'Attribute'}
   ConfigNameAttribute = class(TCustomAttribute)
@@ -29,6 +33,14 @@ type
   public
     constructor Create(const AConfigName: string);
     property ConfigName: string read FConfigName;
+  end;
+
+  KeyNameAttribute = class(TCustomAttribute)
+  private
+    FName: string;
+  public
+    constructor Create(const AName: string);
+    property Name: string read FName;
   end;
 
   TConfigItemAttribute = class(TCustomAttribute)
@@ -101,8 +113,7 @@ type
 implementation
 
 uses
-  Thoth.Utils,
-  System.SysUtils;
+  Thoth.Utils;
 
 
 { ConfigNameAttribute }
@@ -110,6 +121,13 @@ uses
 constructor ConfigNameAttribute.Create(const AConfigName: string);
 begin
   FConfigName := AConfigName;
+end;
+
+{ KeyNameAttribute }
+
+constructor KeyNameAttribute.Create(const AName: string);
+begin
+  FName := AName;
 end;
 
 { TConfigItemAttribute<T> }

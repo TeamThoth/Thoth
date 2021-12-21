@@ -3,6 +3,7 @@ unit Thoth.Config.Loader.IniFile;
 interface
 
 uses
+  Thoth.Config.Types,
   Thoth.Config.Loader,
   System.SysUtils,
   System.IniFiles,
@@ -16,73 +17,98 @@ type
 
     procedure CreateIniFile;
   protected
-    function ReadValue(const ASection, AIdent: string; ADefault: TValue): TValue; override;
-    procedure WriteValue(const ASection, AIdent: string; AValue: TValue); override;
+    procedure SetConfig(const Value: IConfig); override;
 
-    procedure DoLoadConfigBefore; override;
-    procedure DoSaveConfigAfter; override;
+    function DoReadValue(const ASection, AKey: string; ADefault: TValue): TValue; override;
+    procedure DoWriteValue(const ASection, AKey: string; AValue: TValue); override;
+
+    procedure DoBeforeLoadConfig; override;
+    procedure DoAfterLoadConfig; override;
+    procedure DoBeforeSaveConfig; override;
+    procedure DoAfterSaveConfig; override;
+
+    procedure DoClearData; override;
   end;
 
 implementation
 
 uses
-  System.Types, System.TypInfo,
+  System.Types, System.TypInfo, System.IOUtils,
   Thoth.Utils, Thoth.ResourceStrings;
 
 { TIniFileConfigLoader }
 
-procedure TIniFileConfigLoader.CreateIniFile;
-var
-  LName: string;
+procedure TIniFileConfigLoader.SetConfig(const Value: IConfig);
 begin
-  if Assigned(FIniFile) then
-    Exit;
-
-  LName := FConfig.ConfigName;
+  var LName := Value.ConfigName;
 
   if LName = '' then
     FFilename := ChangeFileExt(ParamStr(0), '.ini')
   else
     FFilename := ExtractFilePath(Paramstr(0)) + LName;
+
+end;
+
+procedure TIniFileConfigLoader.CreateIniFile;
+begin
+  if Assigned(FIniFile) then
+    Exit;
   FIniFile := TIniFile.Create(FFilename);
 end;
 
-procedure TIniFileConfigLoader.DoLoadConfigBefore;
+procedure TIniFileConfigLoader.DoBeforeLoadConfig;
 begin
   CreateIniFile;
 end;
 
-procedure TIniFileConfigLoader.DoSaveConfigAfter;
+procedure TIniFileConfigLoader.DoAfterLoadConfig;
 begin
   FIniFile.Free;
   FIniFIle := nil;
 end;
 
-function TIniFileConfigLoader.ReadValue(const ASection, AIdent: string;
+procedure TIniFileConfigLoader.DoBeforeSaveConfig;
+begin
+  CreateIniFile;
+end;
+
+procedure TIniFileConfigLoader.DoAfterSaveConfig;
+begin
+  FIniFile.Free;
+  FIniFIle := nil;
+end;
+
+procedure TIniFileConfigLoader.DoClearData;
+begin
+  if TFile.Exists(FFileName) then
+    TFile.Delete(FFileName);
+end;
+
+function TIniFileConfigLoader.DoReadValue(const ASection, AKey: string;
   ADefault: TValue): TValue;
 begin
   case ADefault.TypeInfo.Kind of
     tkString, tkLString, tkWString, tkUString:
-      Result := TValue.From<string>(FIniFile.ReadString(ASection, AIdent, ADefault.AsString));
+      Result := TValue.From<string>(FIniFile.ReadString(ASection, AKey, ADefault.AsString));
 
     tkInteger:
-      Result := TValue.From<Integer>(FIniFile.ReadInteger(ASection, AIdent, ADefault.AsInteger));
+      Result := TValue.From<Integer>(FIniFile.ReadInteger(ASection, AKey, ADefault.AsInteger));
 
     tkInt64:
-      Result := TValue.From<Int64>(FIniFile.ReadInt64(ASection, AIdent, ADefault.AsInt64));
+      Result := TValue.From<Int64>(FIniFile.ReadInt64(ASection, AKey, ADefault.AsInt64));
 
     tkFloat:
       if ADefault.TypeInfo = TypeInfo(TDateTime) then
-        Result := TValue.From<TDateTime>(FIniFile.ReadDateTime(ASection, AIdent, ADefault.AsExtended))
+        Result := TValue.From<TDateTime>(FIniFile.ReadDateTime(ASection, AKey, ADefault.AsExtended))
       else
-        Result := TValue.From<Double>(FIniFile.ReadFloat(ASection, AIdent, ADefault.AsExtended));
+        Result := TValue.From<Double>(FIniFile.ReadFloat(ASection, AKey, ADefault.AsExtended));
 
     tkEnumeration:
       if ADefault.TypeInfo = TypeInfo(Boolean) then
-        Result := TValue.From<Boolean>(FIniFile.ReadBool(ASection, AIdent, ADefault.AsBoolean))
+        Result := TValue.From<Boolean>(FIniFile.ReadBool(ASection, AKey, ADefault.AsBoolean))
       else
       begin
-        var IntVal := FIniFile.ReadInteger(ASection, AIdent, ADefault.AsOrdinal);
+        var IntVal := FIniFile.ReadInteger(ASection, AKey, ADefault.AsOrdinal);
         Result := TValue.FromOrdinal(ADefault.TypeInfo, IntVal);
       end
   else
@@ -90,30 +116,30 @@ begin
   end;
 end;
 
-procedure TIniFileConfigLoader.WriteValue(const ASection, AIdent: string;
+procedure TIniFileConfigLoader.DoWriteValue(const ASection, AKey: string;
   AValue: TValue);
 begin
   case AValue.TypeInfo.Kind of
     tkString, tkLString, tkWString, tkUString:
-      FIniFile.WriteString(ASection, AIdent, AValue.AsString);
+      FIniFile.WriteString(ASection, AKey, AValue.AsString);
 
     tkInteger:
-      FIniFile.WriteInteger(ASection, AIdent, AValue.AsInteger);
+      FIniFile.WriteInteger(ASection, AKey, AValue.AsInteger);
 
     tkInt64:
-      FIniFile.WriteInt64(ASection, AIdent, AValue.AsInt64);
+      FIniFile.WriteInt64(ASection, AKey, AValue.AsInt64);
 
     tkFloat:
-      if AValue.TypeInfo.Name = 'TDateTime' then
-        FIniFile.WriteDateTime(ASection, AIdent, AValue.AsExtended)
+      if AValue.TypeInfo = TypeInfo(TDateTime) then
+        FIniFile.WriteDateTime(ASection, AKey, AValue.AsExtended)
       else
-        FIniFile.WriteFloat(ASection, AIdent, AValue.AsExtended);
+        FIniFile.WriteFloat(ASection, AKey, AValue.AsExtended);
 
     tkEnumeration:
-      if AValue.TypeInfo.Name = 'Boolean' then
-        FIniFile.WriteBool(ASection, AIdent, AValue.AsBoolean)
+      if AValue.TypeInfo = TypeInfo(Boolean) then
+        FIniFile.WriteBool(ASection, AKey, AValue.AsBoolean)
       else
-        FIniFile.WriteInteger(ASection, AIdent, AValue.AsOrdinal);
+        FIniFile.WriteInteger(ASection, AKey, AValue.AsOrdinal);
   else
     raise Exception.CreateFmt(STypeNotSupported, [AValue.TypeInfo.Name]);
   end;
