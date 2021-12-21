@@ -184,6 +184,7 @@ begin
 
         for LField in LProp.PropertyType.GetFields do
         begin
+          { TODO : 구조체 불러오는 부분 다시 검토해 볼것 }
           var Idx := TArrayUtil.IndexOf<string>(LRecAttr.Fields, LField.Name);
           if Idx = -1 then
             Continue;
@@ -251,6 +252,7 @@ begin
       if LAttr is RecItemAttribute{default = 'string,string,..'} then
       // [구조체] 지정한 필드만 저장
       begin
+        { TODO : 구조체 저장하는 부분 다시 검토해 볼것 }
         LValue := LProp.GetValue(FConfig);
         LRecAttr := LAttr as RecItemAttribute;
         for LField in LProp.PropertyType.GetFields do

@@ -12,7 +12,7 @@ type
     [Setup]     procedure Setup;
     [TearDown]  procedure TearDown;
 
-//    [Test]
+    [Test]
     procedure TestInitIniConfig;
 
     [Test]
@@ -93,6 +93,7 @@ begin
   Assert.AreEqual(Conf.WindowState, wsMaximized);
   Assert.AreEqual(Conf.TestWS.Int, 20);
   Assert.AreEqual(Conf.WindowBounds.Left, 30);
+  Assert.AreEqual(Conf.WindowBounds.Bottom, 0, '미지정 시 초기값 0?');
 
   Assert.AreEqual(Conf.Dbl, Double(10.23));
 
