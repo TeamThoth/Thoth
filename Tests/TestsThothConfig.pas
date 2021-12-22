@@ -112,6 +112,9 @@ begin
   Conf.Int := 100;
   Conf.Str := '가나다';
   Conf.WindowState := TWindowState.wsMinimized;
+  var TestWS := Conf.TestWS;
+  TestWS.Int := 999;
+  Conf.TestWS := TestWS;
 
   Conf.Save;
 
@@ -120,6 +123,7 @@ begin
   Assert.AreEqual(IniFile.ReadInteger('TestSect', 'Int', 0), 100);
   Assert.AreEqual(IniFile.ReadString('TestSect', 'Str', ''), '가나다');
   Assert.AreEqual(TWindowState(IniFile.ReadInteger('TestSect', 'WS', 0)), wsMinimized);
+  Assert.AreEqual(IniFile.ReadInteger('TestSect', 'TestWS.Int', 0), 999);
 
   IniFile.Free;
   Conf.Free;

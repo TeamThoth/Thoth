@@ -58,12 +58,10 @@ type
     constructor Create(ASection: string); overload;
   end;
 
-  /// <summary>Integer 항목 지정</summary>
   IntegerItemAttribute = class(TCustomItemAttribute<Integer>)
   end;
   IntItemAttribute = IntegerItemAttribute;
 
-  /// <summary>String 항목 지정</summary>
   StringItemAttribute = class(TCustomItemAttribute<String>)
   end;
   StrItemAttribute = StringItemAttribute;
@@ -84,28 +82,32 @@ type
   end;
   BoolItemAttribute = BooleanItemAttribute;
 
-  /// <summary>열거형(Enumeration) 항목 지정</summary>
-  /// <code>
-  ///    [EnumProp('Test', 'wsMaximized')]
-  ///    property WindowState: TWindowState read FWindowState write FWindowState;
-  /// </code>
+  /// <summary>열거형(Enumeration) 항목 지정
+  ///  [EnumItem('Test', 'wsMaximized')]
+  /// </summary>
   EnumerationItemAttribute = class(TCustomItemAttribute<string>)
   end;
+  /// <summary>열거형(Enumeration) 항목 지정</summary>
   EnumItemAttribute = EnumerationItemAttribute;
 
 
+  /// <summary>구조체 항목 지정
+  ///   [RecItem('section', 'Field1,Field2', 'Val1, Val2')]
+  /// </summary>
   RecordItemAttribute = class(TCustomItemAttribute<string>)
   private
-    FField: string;
     FFields: TArray<string>;
     FDefaults: TArray<string>;
   public
-    constructor Create(ASection: string; AFields: string; ADefaults: string = ''); overload;
+    /// <param name="ASection">Section of config data</param>
+    /// <param name="ATargetFields">Storage target field of the record.(Separated by commas.)</param>
+    /// <param name="ADefaults">Default value of the record.(Separated by commas.)</param>
+    constructor Create(ASection: string; ATargetFields: string; ADefaults: string = ''); overload;
 
-    property Field: string read FField;
     property Fields: TArray<string> read FFields;
     property Defaults: TArray<string> read FDefaults;
   end;
+  /// <summary>구조체 항목 지정</summary>
   RecItemAttribute = RecordItemAttribute;
 
   {$ENDREGION 'Attribute'}
@@ -146,13 +148,12 @@ end;
 
 { RecordItemAttribute }
 
-constructor RecordItemAttribute.Create(ASection, AFields, ADefaults: string);
+constructor RecordItemAttribute.Create(ASection, ATargetFields, ADefaults: string);
 begin
   FSection := ASection;
   FDefault := ADefaults;
-  FField := AFields;
 
-  FFields := FField.Split([',']);
+  FFields := ATargetFields.Split([',']);
   if not FDefault.IsEmpty then
     FDefaults := FDefault.AsString.Split([',']);
 
