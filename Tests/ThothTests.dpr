@@ -23,7 +23,8 @@ uses
   Thoth.Utils in '..\Sources\Thoth.Utils.pas',
   Thoth.Classes in '..\Sources\Thoth.Classes.pas',
   Thoth.ResourceStrings in '..\Sources\Thoth.ResourceStrings.pas',
-  Thoth.Config.Loader.SQL in '..\Sources\Thoth.Config.Loader.SQL.pas';
+  Thoth.Config.Loader.SQL in '..\Sources\Thoth.Config.Loader.SQL.pas',
+  TestsDatas in 'TestsDatas.pas';
 
 {$IFNDEF TESTINSIGHT}
 var

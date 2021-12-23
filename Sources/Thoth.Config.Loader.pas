@@ -44,6 +44,7 @@ implementation
 uses
   System.TypInfo,
   System.SysUtils,
+  System.StrUtils,
 
   Thoth.ResourceStrings,
   Thoth.Config,
@@ -195,9 +196,10 @@ begin
           if (Idx > -1) and (Length(LTargetAttr.Defaults) > Idx) then
             DefStrVal := LTargetAttr.Defaults[Idx];
 
+          var KeyFieldName: string := IfThen(LKeyName.IsEmpty, '', LKeyName + '.') + LField.Name;
           if ConvertStrToValue(LField.FieldType.Handle, DefStrVal, LDefaultValue) then
           begin
-            var FieldValue: TValue := DoReadValue(LAttr.Section, LKeyName + '.' + LField.Name, LDefaultValue);
+            var FieldValue: TValue := DoReadValue(LAttr.Section, KeyFieldName~, LDefaultValue);
             LField.SetValue(LValue.GetReferenceToRawData, FieldValue);
           end;
         end;
@@ -273,9 +275,11 @@ begin
           if Idx = -1 then
             Continue;
 
+          var KeyFieldName: string := IfThen(LKeyName.IsEmpty, '', LKeyName + '.') + LField.Name;
+
           DoWriteValue(
             LAttr.Section,
-            LKeyName + '.' + LField.Name,
+            KeyFieldName,
             LField.GetValue(LValue.GetReferenceToRawData)
           );
         end;

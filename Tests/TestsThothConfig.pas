@@ -3,12 +3,22 @@ unit TestsThothConfig;
 interface
 
 uses
-  DUnitX.TestFramework;
+  DUnitX.TestFramework,
+  TestsDatas,
+
+  FireDAC.Comp.Client,
+  FireDAC.Phys.SQLiteWrapper.Stat,
+  FireDAC.Phys.SQLiteDef, FireDAC.Phys.SQLite;
 
 type
   [TestFixture]
   TThothConfigTest = class
+  private
+    FConnection: TFDConnection;
   public
+    [SetupFixture]    procedure SetupFixture;
+    [TearDownFixture] procedure TearDownFixture;
+
     [Setup]     procedure Setup;
     [TearDown]  procedure TearDown;
 
@@ -85,14 +95,48 @@ type
     property Dbl: Double read FDbl write FDbl;
   end;
 
+
+  [ConfigName('ThConfig')] // Database
+  TSQLConfig = class(TThothConfig)
+  private
+    FInt: Integer;
+    FStr: string;
+    FTestWS: TTestWS;
+  public
+    [ConfigItem('TestSect', 10)] // TableName
+    property Int: Integer read FInt write FInt;
+
+    [ConfigItem('TestSect', 'abcd')]
+    property Str: string read FStr write FStr;
+
+    [ConfigItem('TestSect')]
+    [ConfigKeyName('')]
+    [ConfigTargetFields('WS, TestInt', 'wsMinimized, 20')]
+    property TestWS: TTestWS read FTestWS write FTestWS;
+  end;
+
 procedure TThothConfigTest.Setup;
+begin
+end;
+
+procedure TThothConfigTest.SetupFixture;
 begin
   FormatSettings.DateSeparator := '-';
   FormatSettings.TimeSeparator := ':';
+
+  FConnection := TFDConnection.Create(nil);
+  FConnection.Params.DriverID := 'SQLite';
+  FConnection.Params.Database := ExtractFilePath(Paramstr(0)) + 'Thoth.sqlite';
+  FConnection.ExecSQL(CONFIG_CREATE_SQL);
 end;
 
 procedure TThothConfigTest.TearDown;
 begin
+end;
+
+procedure TThothConfigTest.TearDownFixture;
+begin
+  FConnection.Free;
 end;
 
 procedure TThothConfigTest.TestInitIniConfig;
