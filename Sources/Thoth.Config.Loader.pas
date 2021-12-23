@@ -9,20 +9,26 @@ uses
 
 type
   TCustomConfigLoader = class(TNoRefCountObject, IConfigLoader)
+  private
+    procedure SetConfig(const Value: IConfig);
+
+    procedure CheckConfig;
   protected
     FConfig: IConfig;
 
-    procedure CheckConfig;
+    /// <summary>초기화(Config 객체 설정 됨)</summary>
+    procedure DoInitialize; virtual;
 
-    procedure SetConfig(const Value: IConfig); virtual;
-
+    /// <summary>설정값 읽어 Config 객체에 값할당(없으면 ADefault)</summary>
     function DoReadValue(const ASection, AKey: string; ADefault: TValue): TValue; virtual; abstract;
+    /// <summary>Config 객체의 값을 설정값에 쓰기</summary>
     procedure DoWriteValue(const ASection, AKey: string; AValue: TValue); virtual; abstract;
 
     procedure DoBeforeLoadConfig; virtual;
     procedure DoAfterLoadConfig; virtual;
     procedure DoBeforeSaveConfig; virtual;
     procedure DoAfterSaveConfig; virtual;
+
     procedure DoClearData; virtual;
   public
     procedure LoadConfig;
@@ -31,8 +37,6 @@ type
     procedure ClearData;
 
     property Config: IConfig read FConfig write SetConfig;
-
-    destructor Destroy; override;
   end;
 
 implementation
@@ -109,10 +113,8 @@ begin
   DoClearData;
 end;
 
-destructor TCustomConfigLoader.Destroy;
+procedure TCustomConfigLoader.DoInitialize;
 begin
-
-  inherited;
 end;
 
 procedure TCustomConfigLoader.DoBeforeLoadConfig;
@@ -291,6 +293,8 @@ end;
 procedure TCustomConfigLoader.SetConfig(const Value: IConfig);
 begin
   FConfig := Value;
+
+  DoInitialize;
 end;
 
 end.

@@ -19,7 +19,7 @@ type
 
     procedure CreateIniFile;
   protected
-    procedure SetConfig(const Value: IConfig); override;
+    procedure DoInitialize; override;
 
     function DoReadValue(const ASection, AKey: string; ADefault: TValue): TValue; override;
     procedure DoWriteValue(const ASection, AKey: string; AValue: TValue); override;
@@ -40,24 +40,23 @@ uses
 
 { TIniFileConfigLoader }
 
-procedure TIniFileConfigLoader.SetConfig(const Value: IConfig);
-begin
-  inherited;
-
-  var LName := Value.ConfigName;
-
-  if LName = '' then
-    FFilename := ChangeFileExt(ParamStr(0), '.ini')
-  else
-    FFilename := ExtractFilePath(Paramstr(0)) + LName;
-
-end;
-
 procedure TIniFileConfigLoader.CreateIniFile;
 begin
   if Assigned(FIniFile) then
     Exit;
   FIniFile := TIniFile.Create(FFilename);
+end;
+
+procedure TIniFileConfigLoader.DoInitialize;
+begin
+  inherited;
+
+  var LName := FConfig.ConfigName;
+
+  if LName = '' then
+    FFilename := ChangeFileExt(ParamStr(0), '.ini')
+  else
+    FFilename := ExtractFilePath(Paramstr(0)) + LName;
 end;
 
 procedure TIniFileConfigLoader.DoBeforeLoadConfig;
