@@ -56,7 +56,10 @@ begin
         Value := TValue.From<Int64>(StrToInt64Def(AStr, 0));
 
       tkFloat:
-        Value := TValue.From<Double>(StrToFloatDef(AStr, 0));
+        if ATypeInfo = TypeInfo(TDateTime) then
+          Value := TValue.From<TDateTime>(StrToDateTimeDef(AStr, 0))
+        else
+          Value := TValue.From<Double>(StrToFloatDef(AStr, 0));
 
       tkString, tkLString, tkWString, tkUString:
         Value := TValue.From<string>(AStr);
@@ -139,10 +142,11 @@ var
   LProp: TRttiProperty;
   LField: TRttiField;
 
-  LAttr: TConfigItemAttribute;
-  LRecAttr: RecItemAttribute;
-  LValue: TValue;
+  LAttr: ConfigItemAttribute;
   LKeyName: string;
+  LValue: TValue;
+  LDefaultValue: TValue;
+  LTargetAttr: ConfigTargetFieldsAttribute;
 begin
   CheckConfig;
 
@@ -155,11 +159,11 @@ begin
       if not LProp.IsReadable then
         Continue;
 
-      LAttr := TAttributeUtil.FindAttribute<TConfigItemAttribute>(LProp.GetAttributes);
+      LAttr := TAttributeUtil.FindAttribute<ConfigItemAttribute>(LProp.GetAttributes);
       if not Assigned(LAttr) then
         Continue;
 
-      var KeyAttr := TAttributeUtil.FindAttribute<KeyNameAttribute>(LProp.GetAttributes);
+      var KeyAttr := TAttributeUtil.FindAttribute<ConfigKeyNameAttribute>(LProp.GetAttributes);
       if Assigned(KeyAttr) then
         LKeyName := KeyAttr.Name
       else
@@ -167,42 +171,47 @@ begin
 
       LValue := TValue.Empty;
 
-      if LAttr is EnumItemAttribute{default = string} then
-      // [열거형] 기본값 = 문자열
-        // 문자열기본값을 열거형타입으로 변환 후 읽기
+      // [열거형] 기본 값이 문자열로 지정 됨, 타입 변환 후 값 읽을 것
+      if (LProp.PropertyType.Handle.Kind = tkEnumeration) and (LProp.PropertyType.Handle <> TypeInfo(Boolean)) then
       begin
-        var DefaultValue: TValue;
-        if ConvertStrToValue(LProp.PropertyType.Handle, LAttr.Default.AsString, DefaultValue) then
-          LValue := DoReadValue(LAttr.Section, LKeyName, DefaultValue);
+        if ConvertStrToValue(LProp.PropertyType.Handle, LAttr.Default.AsString, LDefaultValue) then
+          LValue := DoReadValue(LAttr.Section, LKeyName, LDefaultValue);
       end
-      else if LAttr is RecItemAttribute{default = 'string,string,..'} then
-      // [구조체] 기본값 = 문자열(쉼표로 복수 지정)
-        // 구조체 필드에 설정값 로드
+      // [구조체] 대상필드 및 기본 값을 쉼표구분으로 지정 됨(ConfigTargetFieldsAttribute)
+      else if LProp.PropertyType.Handle.Kind = tkRecord then
       begin
         LValue := LProp.GetValue(FConfig);
-        LRecAttr := LAttr as RecItemAttribute;
+        LTargetAttr := TAttributeUtil.FindAttribute<ConfigTargetFieldsAttribute>(LProp.GetAttributes);
+        if not Assigned(LTargetAttr) then
+          Continue;
 
         for LField in LProp.PropertyType.GetFields do
         begin
-          { TODO : 구조체 불러오는 부분 다시 검토해 볼것 }
-          var Idx := TArrayUtil.IndexOf<string>(LRecAttr.Fields, LField.Name);
-//          if Idx = -1 then
-//            Continue;
+          var Idx := TArrayUtil.IndexOf<string>(LTargetAttr.Fields, LField.Name);
 
           var DefStrVal: string := '';
-          if (Idx > -1) and (Length(LRecAttr.Defaults) > Idx) then
-            DefStrVal := LRecAttr.Defaults[Idx];
+          if (Idx > -1) and (Length(LTargetAttr.Defaults) > Idx) then
+            DefStrVal := LTargetAttr.Defaults[Idx];
 
-          var DefaultValue: TValue;
-          if ConvertStrToValue(LField.FieldType.Handle, DefStrVal, DefaultValue) then
+          if ConvertStrToValue(LField.FieldType.Handle, DefStrVal, LDefaultValue) then
           begin
-            var FieldValue: TValue := DoReadValue(LAttr.Section, LKeyName + '.' + LField.Name, DefaultValue);
+            var FieldValue: TValue := DoReadValue(LAttr.Section, LKeyName + '.' + LField.Name, LDefaultValue);
             LField.SetValue(LValue.GetReferenceToRawData, FieldValue);
           end;
         end;
       end
       else
-        LValue := DoReadValue(LAttr.Section, LKeyName, LAttr.Default);
+      begin
+        LDefaultValue := LAttr.Default;
+        if LDefaultValue.IsEmpty then
+          TValue.Make(nil, LProp.PropertyType.Handle, LDefaultValue);
+
+        // 특성의 기본 값이 문자열로 지정 시 DefaultValue 타입 변경
+        if (LDefaultValue.TypeInfo <> LProp.PropertyType.Handle) and (LDefaultValue.TypeInfo = TypeInfo(string)) then
+          ConvertStrToValue(LProp.PropertyType.Handle, LDefaultValue.AsString, LDefaultValue);
+
+        LValue := DoReadValue(LAttr.Section, LKeyName, LDefaultValue);
+      end;
 
       if LValue.IsEmpty then
         raise Exception.CreateFmt(STypeNotSupported, [LProp.PropertyType.Name]);
@@ -223,8 +232,8 @@ var
   LProp: TRttiProperty;
   LField: TRttiField;
 
-  LAttr: TConfigItemAttribute;
-  LRecAttr: RecItemAttribute;
+  LAttr: ConfigItemAttribute;
+  LTargetAttr: ConfigTargetFieldsAttribute;
   LValue: TValue;
   LKeyName: string;
 begin
@@ -239,24 +248,26 @@ begin
       if not LProp.IsReadable then
         Continue;
 
-      LAttr := TAttributeUtil.FindAttribute<TConfigItemAttribute>(LProp.GetAttributes);
+      LAttr := TAttributeUtil.FindAttribute<ConfigItemAttribute>(LProp.GetAttributes);
       if not Assigned(LAttr) then
         Continue;
 
-      var KeyAttr := TAttributeUtil.FindAttribute<KeyNameAttribute>(LProp.GetAttributes);
+      var KeyAttr := TAttributeUtil.FindAttribute<ConfigKeyNameAttribute>(LProp.GetAttributes);
       if Assigned(KeyAttr) then
         LKeyName := KeyAttr.Name
       else
         LKeyName := LProp.Name;
 
-      if LAttr is RecItemAttribute{default = 'string,string,..'} then
+      if LProp.PropertyType.Handle.Kind = tkRecord then
       begin
         LValue := LProp.GetValue(TObject(FConfig));
-        LRecAttr := LAttr as RecItemAttribute;
+        LTargetAttr := TAttributeUtil.FindAttribute<ConfigTargetFieldsAttribute>(LProp.GetAttributes);
+        if not Assigned(LTargetAttr) then // 타겟필드 지정하지 않으면 저장하지 않음
+          Continue;
         for LField in LProp.PropertyType.GetFields do
         begin
-          // [구조체] 지정한 필드만 저장
-          var Idx := TArrayUtil.IndexOf<string>(LRecAttr.Fields, LField.Name);
+          // 지정한 필드만 저장
+          var Idx := TArrayUtil.IndexOf<string>(LTargetAttr.Fields, LField.Name);
           if Idx = -1 then
             Continue;
 

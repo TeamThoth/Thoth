@@ -5,11 +5,13 @@ interface
 uses
   Thoth.Config.Types,
   Thoth.Config.Loader,
-  System.SysUtils,
   System.IniFiles,
   System.Rtti;
 
 type
+  /// <summary>
+  ///  INI 파일을 이용해 설정값을 관리한다.
+  /// </summary>
   TIniFileConfigLoader = class(TCustomConfigLoader)
   private
     FIniFile: TIniFile;
@@ -33,7 +35,7 @@ type
 implementation
 
 uses
-  System.Types, System.TypInfo, System.IOUtils,
+  System.Types, System.TypInfo, System.IOUtils, System.SysUtils,
   Thoth.Utils, Thoth.ResourceStrings;
 
 { TIniFileConfigLoader }

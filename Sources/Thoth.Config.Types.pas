@@ -8,6 +8,7 @@ uses
 
 type
   IConfig = interface
+  ['{931DD9FB-8260-40B3-8A60-B13886E54CD0}']
     function GetConfigName: string;
     procedure SetConfigName(const Value: string);
 
@@ -26,7 +27,8 @@ type
 
   TConfigLoaderCreateFunc = TFunc<IConfigLoader>;
 
-  {$REGION 'Attribute'}
+{$REGION 'Attribute'}
+  /// <summary>설정 이름 지정(활용: ini 파일명, DB테이블명 등)</summary>
   ConfigNameAttribute = class(TCustomAttribute)
   private
     FConfigName: string;
@@ -35,7 +37,8 @@ type
     property ConfigName: string read FConfigName;
   end;
 
-  KeyNameAttribute = class(TCustomAttribute)
+  /// <summary>키 이름 지정(기본: property 이름) </summary>
+  ConfigKeyNameAttribute = class(TCustomAttribute)
   private
     FName: string;
   public
@@ -43,74 +46,37 @@ type
     property Name: string read FName;
   end;
 
-  TConfigItemAttribute = class(TCustomAttribute)
+  /// <summary>관리 항목 지정(Params: 카테고리, 기본값='')</summary>
+  ConfigItemAttribute = class(TCustomAttribute)
   private
     FSection: string;
     FDefault: TValue;
   public
     property Section: string read FSection;
     property &Default: TValue read FDefault;
-  end;
 
-  TCustomItemAttribute<T> = class(TConfigItemAttribute)
-  public
-    constructor Create(const ASection: string; ADefault: T); overload;
     constructor Create(ASection: string); overload;
+    constructor Create(ASection: string; ADefault: string); overload;
+    constructor Create(ASection: string; ADefault: Integer); overload;
+    constructor Create(ASection: string; ADefault: Boolean); overload;
+    constructor Create(ASection: string; ADefault: Double); overload;
   end;
 
-  IntegerItemAttribute = class(TCustomItemAttribute<Integer>)
-  end;
-  IntItemAttribute = IntegerItemAttribute;
-
-  StringItemAttribute = class(TCustomItemAttribute<String>)
-  end;
-  StrItemAttribute = StringItemAttribute;
-
-
-  Int64ItemAttribute = class(TCustomItemAttribute<Int64>)
-  end;
-
-  FloatItemAttribute = class(TCustomItemAttribute<Double>)
-  end;
-  DblItemAttribute = FloatItemAttribute;
-
-  DateTimeItemAttribute = class(TCustomItemAttribute<TDateTime>)
-  end;
-  DtmItemAttibute = DateTimeItemAttribute;
-
-  BooleanItemAttribute = class(TCustomItemAttribute<Boolean>)
-  end;
-  BoolItemAttribute = BooleanItemAttribute;
-
-  /// <summary>열거형(Enumeration) 항목 지정
-  ///  [EnumItem('Test', 'wsMaximized')]
-  /// </summary>
-  EnumerationItemAttribute = class(TCustomItemAttribute<string>)
-  end;
-  /// <summary>열거형(Enumeration) 항목 지정</summary>
-  EnumItemAttribute = EnumerationItemAttribute;
-
-
-  /// <summary>구조체 항목 지정
-  ///   [RecItem('section', 'Field1,Field2', 'Val1, Val2')]
-  /// </summary>
-  RecordItemAttribute = class(TCustomItemAttribute<string>)
+  /// <summary>구조체 항목 지정(Params: 'Field1,Field2', 'Val1, Val2')</summary>
+  ConfigTargetFieldsAttribute = class(TCustomAttribute)
   private
+    FDefault: string;
     FFields: TArray<string>;
     FDefaults: TArray<string>;
   public
-    /// <param name="ASection">Section of config data</param>
     /// <param name="ATargetFields">Storage target field of the record.(Separated by commas.)</param>
     /// <param name="ADefaults">Default value of the record.(Separated by commas.)</param>
-    constructor Create(ASection: string; ATargetFields: string; ADefaults: string = ''); overload;
+    constructor Create(ATargetFields: string; ADefaults: string = ''); overload;
 
     property Fields: TArray<string> read FFields;
     property Defaults: TArray<string> read FDefaults;
   end;
-  /// <summary>구조체 항목 지정</summary>
-  RecItemAttribute = RecordItemAttribute;
-
-  {$ENDREGION 'Attribute'}
+{$ENDREGION 'Attribute'}
 
 implementation
 
@@ -125,37 +91,54 @@ begin
   FConfigName := AConfigName;
 end;
 
-{ KeyNameAttribute }
+{ ConfigKeyNameAttribute }
 
-constructor KeyNameAttribute.Create(const AName: string);
+constructor ConfigKeyNameAttribute.Create(const AName: string);
 begin
   FName := AName;
 end;
 
-{ TConfigItemAttribute<T> }
+{ ConfigItemAttribute }
 
-constructor TCustomItemAttribute<T>.Create(ASection: string);
+constructor ConfigItemAttribute.Create(ASection: string);
 begin
   FSection := ASection;
-  FDefault := TValue.From<T>(System.Default(T));
 end;
 
-constructor TCustomItemAttribute<T>.Create(const ASection: string; ADefault: T);
+constructor ConfigItemAttribute.Create(ASection: string; ADefault: string);
 begin
   FSection := ASection;
-  FDefault := TValue.From<T>(ADefault);
+  FDefault := TValue.From<string>(ADefault);
 end;
 
-{ RecordItemAttribute }
-
-constructor RecordItemAttribute.Create(ASection, ATargetFields, ADefaults: string);
+constructor ConfigItemAttribute.Create(ASection: string; ADefault: Integer);
 begin
   FSection := ASection;
+  FDefault := TValue.From<Integer>(ADefault);
+end;
+
+constructor ConfigItemAttribute.Create(ASection: string; ADefault: Boolean);
+begin
+  FSection := ASection;
+  FDefault := TValue.From<Boolean>(ADefault);
+end;
+
+constructor ConfigItemAttribute.Create(ASection: string; ADefault: Double);
+begin
+  FSection := ASection;
+  FDefault := TValue.From<Double>(ADefault);
+end;
+
+{ ConfigTargetFieldsAttribute }
+
+constructor ConfigTargetFieldsAttribute.Create(ATargetFields, ADefaults: string);
+begin
+//  FSection := ASection;
   FDefault := ADefaults;
 
   FFields := ATargetFields.Split([',']);
   if not FDefault.IsEmpty then
-    FDefaults := FDefault.AsString.Split([',']);
+    FDefaults := FDefault.Split([',']);
 
   TArrayUtil.Trim(FFields);
   TArrayUtil.Trim(FDefaults);

@@ -13,10 +13,13 @@ type
     [TearDown]  procedure TearDown;
 
     [Test]
-    procedure TestInitIniConfig;
+    procedure TestInitIniConfig;  // 초기 값 지정 확인
 
     [Test]
-    procedure TestSaveIniConfig;
+    procedure TestSaveIniConfig;  // 설정 값 저장 확인
+
+    [Test]
+    procedure TestLoadIniConfig;  // 설정 값 불러오기 확인
   end;
 
 implementation
@@ -37,6 +40,7 @@ type
   TIniConfig = class(TThothConfig)
   private
     FInt: Integer;
+    FIntDef: Integer;
     FStr: string;
     FDtm: TDatetime;
     FTestWS: TTestWS;
@@ -44,35 +48,47 @@ type
     FWindowState: TWindowState;
     FDbl: Double;
     FWindowBounds: TRect;
+    FDtmStr: TDatetime;
   public
-    [IntItem('TestSect', 10)]
+    [ConfigItem('TestSect', 10)]
     property Int: Integer read FInt write FInt;
 
-    [StrItem('TestSect', 'abcd')]
+    [ConfigItem('TestSect')]
+    property IntDef: Integer read FIntDef write FIntDef;
+
+    [ConfigItem('TestSect', 'abcd')]
     property Str: string read FStr write FStr;
 
-    [BoolItem('TestSect', True)]
+    [ConfigItem('TestSect', False)]
     property Bool: Boolean read FBool write FBool;
 
-    [EnumItem('TestSect', 'wsMaximized')]
-    [KeyName('WS')]
+    [ConfigItem('TestSect', 'wsMaximized')]
+    [ConfigKeyName('WS')]
     property WindowState: TWindowState read FWindowState write FWindowState;
 
-    [RecItem('TestSect', 'WS, Int', 'wsMinimized, 20')]
+    [ConfigItem('TestSect')]
+    [ConfigTargetFields('WS, Int', 'wsMinimized, 20')]
     property TestWS: TTestWS read FTestWS write FTestWS;
 
-    [RecordItem('TestSect', 'Left, Top', '30,40')]
+    [ConfigItem('TestSect')]
+    [ConfigTargetFields('Left, Top', '30,40')]
     property WindowBounds: TRect read FWindowBounds write FWindowBounds;
 
-    [DateTimeItem('TestSect')]
+    [ConfigItem('TestSect')]
     property Dtm: TDatetime read FDtm write FDtm;
 
-    [DblItem('TestSect', 10.23)]
+    [ConfigItem('TestSect', '2021-12-23')]
+    [ConfigKeyName('DateTimeStr')]
+    property DtmStr: TDatetime read FDtmStr write FDtmStr;
+
+    [ConfigItem('TestSect', 10.23)]
     property Dbl: Double read FDbl write FDbl;
   end;
 
 procedure TThothConfigTest.Setup;
 begin
+  FormatSettings.DateSeparator := '-';
+  FormatSettings.TimeSeparator := ':';
 end;
 
 procedure TThothConfigTest.TearDown;
@@ -95,6 +111,8 @@ begin
   Assert.AreEqual(Conf.WindowBounds.Left, 30);
   Assert.AreEqual(Conf.WindowBounds.Bottom, 0, '미지정 시 초기값 0?');
 
+  Assert.AreEqual(FormatDateTime('YYYY-MM-DD', Conf.DtmStr), '2021-12-23');
+
   Assert.AreEqual(Conf.Dbl, Double(10.23));
 
   Conf.Free;
@@ -105,7 +123,7 @@ var
   Conf: TIniConfig;
   IniFile: TIniFile;
 begin
-  Conf := TIniConfig.Create(TIniConfig.DefaultLoader);
+  Conf := TIniConfig.Create(TIniFileConfigLoader.Create as IConfigLoader);
 
   Conf.Load;
 
@@ -126,6 +144,42 @@ begin
   Assert.AreEqual(IniFile.ReadInteger('TestSect', 'TestWS.Int', 0), 999);
 
   IniFile.Free;
+  Conf.Free;
+end;
+
+procedure TThothConfigTest.TestLoadIniConfig;
+var
+  Conf: TIniConfig;
+begin
+  Conf := TIniConfig.Create(
+    function: IConfigLoader
+    begin
+      Result := TIniFileConfigLoader.Create
+    end
+  );
+  Conf.Clear;
+  Conf.Load;
+
+  Conf.Int := 256;
+  Conf.Str := 'How are you?';
+  Conf.WindowState := TWindowState.wsMaximized;
+  var TestWS := Conf.TestWS;
+  TestWS.Int := 987;
+  Conf.TestWS := TestWS;
+  var Rect: TRect := Conf.WindowBounds;
+  Rect := TRect.Create(101, 202, 303, 404); // Target(Left, Top)
+  Conf.WindowBounds := Rect;
+  Conf.Save;
+  Conf.Free;
+
+  Conf := TIniConfig.Create(TIniConfig.DefaultLoader);
+  Conf.Load;
+
+  Assert.AreEqual(Conf.Int, 256);
+  Assert.AreEqual(Conf.Str, 'How are you?');
+  Assert.AreEqual(Conf.WindowState, wsMaximized);
+  Assert.AreEqual(Conf.TestWS.Int, 987);
+  Assert.AreEqual(Conf.WindowBounds, TRect.Create(101, 202, 0, 0));
   Conf.Free;
 end;
 
