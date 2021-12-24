@@ -11,18 +11,26 @@ uses
   FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.VCLUI.Wait,
   FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, Data.DB,
   FireDAC.Comp.DataSet, FireDAC.Comp.Client,
-  System.Rtti;
+
+  System.Rtti, System.Generics.Collections;
 
 type
   TSQLConfigLoader = class(TCustomConfigLoader)
   private
+    FFetchAll: Boolean;
     FConnection: TFDConnection;
     FQuery: TFDQuery;
 
-    FTableName: string;
+    FDictionary: TDictionary<string, TValue>;
+    FDbFieldNames: TList<string>;
 
+    FTableName: string;
+    procedure SetConnection(const Value: TFDConnection);
+    procedure SetQuery(const Value: TFDQuery);
+
+    procedure CollectFields;
   protected
-    procedure DoInitialize;
+    procedure DoInitialize; override;
 
     function DoReadValue(const ASection, AKey: string; ADefault: TValue): TValue; override;
     procedure DoWriteValue(const ASection, AKey: string; AValue: TValue); override;
@@ -33,15 +41,54 @@ type
     procedure DoAfterSaveConfig; override;
 
     procedure DoClearData; override;
+  public
+    constructor Create(AFetchAll: Boolean = True);
+    destructor Destroy; override;
+
+    property Connection: TFDConnection read FConnection write SetConnection;
+    property Query: TFDQuery read FQuery write SetQuery;
   end;
 
 implementation
 
+uses
+  System.SysUtils,
+
+  Thoth.ResourceStrings;
+
+
 { TSQLConfigLoader }
+
+procedure TSQLConfigLoader.CollectFields;
+begin
+
+end;
+
+constructor TSQLConfigLoader.Create(AFetchAll: Boolean);
+begin
+  FFetchAll := AFetchAll;
+
+  if FFetchAll then
+  begin
+    FDictionary := TDictionary<string, TValue>.Create;
+    FDbFieldNames := TList<string>.Create;
+  end;
+end;
+
+destructor TSQLConfigLoader.Destroy;
+begin
+  if Assigned(FDictionary) then
+    FDictionary.Free;
+  if Assigned(FDbFieldNames) then
+    FDbFieldNames.Free;
+
+  inherited;
+end;
 
 procedure TSQLConfigLoader.DoInitialize;
 begin
-
+  if not Assigned(FConnection) then
+    raise Exception.CreateFmt(SNotAssigned, ['Connection']);
 end;
 
 procedure TSQLConfigLoader.DoAfterLoadConfig;
@@ -77,7 +124,6 @@ end;
 function TSQLConfigLoader.DoReadValue(const ASection, AKey: string;
   ADefault: TValue): TValue;
 begin
-
 end;
 
 procedure TSQLConfigLoader.DoWriteValue(const ASection, AKey: string;
@@ -85,6 +131,17 @@ procedure TSQLConfigLoader.DoWriteValue(const ASection, AKey: string;
 begin
   inherited;
 
+end;
+
+procedure TSQLConfigLoader.SetConnection(const Value: TFDConnection);
+begin
+  FConnection := Value;
+end;
+
+procedure TSQLConfigLoader.SetQuery(const Value: TFDQuery);
+begin
+  FQuery := Value;
+  FQuery.Connection
 end;
 
 end.

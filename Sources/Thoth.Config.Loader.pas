@@ -114,6 +114,13 @@ begin
   DoClearData;
 end;
 
+procedure TCustomConfigLoader.SetConfig(const Value: IConfig);
+begin
+  FConfig := Value;
+
+  DoInitialize;
+end;
+
 procedure TCustomConfigLoader.DoInitialize;
 begin
 end;
@@ -199,7 +206,7 @@ begin
           var KeyFieldName: string := IfThen(LKeyName.IsEmpty, '', LKeyName + '.') + LField.Name;
           if ConvertStrToValue(LField.FieldType.Handle, DefStrVal, LDefaultValue) then
           begin
-            var FieldValue: TValue := DoReadValue(LAttr.Section, KeyFieldName~, LDefaultValue);
+            var FieldValue: TValue := DoReadValue(LAttr.Section, KeyFieldName, LDefaultValue);
             LField.SetValue(LValue.GetReferenceToRawData, FieldValue);
           end;
         end;
@@ -292,13 +299,6 @@ begin
 
     DoAfterSaveConfig;
   end;
-end;
-
-procedure TCustomConfigLoader.SetConfig(const Value: IConfig);
-begin
-  FConfig := Value;
-
-  DoInitialize;
 end;
 
 end.
