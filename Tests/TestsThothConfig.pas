@@ -5,6 +5,7 @@ interface
 uses
   DUnitX.TestFramework,
   TestsDatas,
+  Thoth.Config.Types,
 
   FireDAC.Comp.Client,
   FireDAC.Phys.SQLiteWrapper.Stat,
@@ -15,6 +16,8 @@ type
   TThothConfigTest = class
   private
     FConnection: TFDConnection;
+
+    function DefaultSQLConfigLoader: IConfigLoader;
   public
     [SetupFixture]    procedure SetupFixture;
     [TearDownFixture] procedure TearDownFixture;
@@ -33,12 +36,14 @@ type
 
     [Test]
     procedure TestInitSQLConfig;
+
+    [Test]
+    procedure TestSaveSQLConfig;
   end;
 
 implementation
 
 uses
-  Thoth.Config.Types,
   Thoth.Config,
   Thoth.Config.Loader.IniFile,
   Thoth.Config.Loader.SQL,
@@ -163,23 +168,45 @@ begin
   Conf.Free;
 end;
 
+function TThothConfigTest.DefaultSQLConfigLoader: IConfigLoader;
+var
+  Loader: TSQLConfigLoader;
+begin
+  Loader := TSQLConfigLoader.Create(True);
+  Loader.Connection := FConnection;
+
+  Result := Loader;
+end;
+
 procedure TThothConfigTest.TestInitSQLConfig;
 var
   Conf: TSQLConfig;
 begin
-  Conf := TSQLConfig.Create(
-    function: IConfigLoader
-    var
-      Loader: TSQLConfigLoader;
-    begin
-      Loader := TSQLConfigLoader.Create(True);
-      Loader.Connection := FConnection;
-
-      Result := Loader;
-    end
-  );
+  Conf := TSQLConfig.Create(DefaultSQLConfigLoader);
 
   Conf.Load;
+
+  Assert.AreEqual(Conf.Int, 10);
+  Assert.AreEqual(Conf.Str, 'abcd');
+  Assert.AreEqual(Conf.TestWS.WS, wsMinimized);
+  Assert.AreEqual(Conf.TestWS.Int, 20);
+end;
+
+procedure TThothConfigTest.TestSaveSQLConfig;
+var
+  Conf: TSQLConfig;
+begin
+  Conf := TSQLConfig.Create(DefaultSQLConfigLoader);
+  Conf.Load;
+
+  Conf.Int := 30;
+  Conf.Str := 'test';
+  var Rec := Conf.TestWS;
+  Rec.WS := wsMaximized;
+  Rec.Int := 200;
+  Conf.TestWS := Rec;
+
+  Conf.Save;
 end;
 
 initialization

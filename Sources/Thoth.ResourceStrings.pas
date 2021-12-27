@@ -3,8 +3,9 @@ unit Thoth.ResourceStrings;
 interface
 
 resourcestring
-  STypeNotSupported         = 'Type is not supported: %s';
-  SNotAssigned              = 'Not assigned %s';
+  STypeNotSupported         = '[%s] Type is not supported: %s';
+  SNotAssigned              = '[%s] Not assigned ''%s''';
+  SNotFoundField            = '[%s] Not found field.(Name: %s)';
 
 implementation
 

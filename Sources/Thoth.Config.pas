@@ -78,7 +78,7 @@ end;
 procedure TThothConfig.CheckLoader;
 begin
   if not Assigned(FLoader) then
-    raise Exception.CreateFmt(SNotAssigned, ['loader']);
+    raise Exception.CreateFmt(SNotAssigned, [ClassName, 'loader']);
 end;
 
 procedure TThothConfig.Clear;

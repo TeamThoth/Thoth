@@ -144,7 +144,7 @@ begin
       else
         FIniFile.WriteInteger(ASection, AKey, AValue.AsOrdinal);
   else
-    raise Exception.CreateFmt(STypeNotSupported, [AValue.TypeInfo.Name]);
+    raise Exception.CreateFmt(STypeNotSupported, [ClassName, AValue.TypeInfo.Name]);
   end;
 end;
 

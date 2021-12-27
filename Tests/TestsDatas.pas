@@ -80,7 +80,7 @@ type
 
     [ConfigItem('TestSect')]
     [ConfigKeyName('')]
-    [ConfigTargetFields('WS, TestInt', 'wsMinimized, 20')]
+    [ConfigTargetFields('WS, Int', 'wsMinimized, 20', 'WS, TestInt')]
     property TestWS: TRec1 read FRec1 write FRec1;
   end;
 
@@ -88,7 +88,8 @@ const
   CONFIG_CREATE_SQL = 'CREATE TABLE IF NOT EXISTS ThConfig(' +
     '   user_id VARCHAR(16) NOT NULL' +
     ',  int INTEGER' +
-    ',  WS VARCHAR(16)' +
+    ',  Str VARCHAR(256)' +
+    ',  WS VARCHAR(256)' +
     ',  TestInt INTEGER' +
   ')';
 {$ENDREGION}

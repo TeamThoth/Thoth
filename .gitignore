@@ -69,3 +69,4 @@ __recovery/
 modules/
 Tests/Win32/Debug/dunitx-results.xml
 Tests/Win32/Debug/ThConfig.ini
+Tests/Win32/Debug/Thoth.sqlite

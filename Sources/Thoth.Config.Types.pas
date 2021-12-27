@@ -65,16 +65,17 @@ type
   /// <summary>구조체 항목 지정(Params: 'Field1,Field2', 'Val1, Val2')</summary>
   ConfigTargetFieldsAttribute = class(TCustomAttribute)
   private
-    FDefault: string;
     FFields: TArray<string>;
     FDefaults: TArray<string>;
+    FKeyNames: TArray<string>;
   public
-    /// <param name="ATargetFields">Storage target field of the record.(Separated by commas.)</param>
+    /// <param name="ATargetFields">Target field to be saved in a record.(Separated by commas.)</param>
     /// <param name="ADefaults">Default value of the record.(Separated by commas.)</param>
-    constructor Create(ATargetFields: string; ADefaults: string = ''); overload;
+    constructor Create(ATargetFields: string; ADefaults: string = ''; ATargetKeyNames: string = '');
 
     property Fields: TArray<string> read FFields;
     property Defaults: TArray<string> read FDefaults;
+    property KeyNames: TArray<string> read FKeyNames;
   end;
 {$ENDREGION 'Attribute'}
 
@@ -131,17 +132,15 @@ end;
 
 { ConfigTargetFieldsAttribute }
 
-constructor ConfigTargetFieldsAttribute.Create(ATargetFields, ADefaults: string);
+constructor ConfigTargetFieldsAttribute.Create(ATargetFields, ADefaults, ATargetKeyNames: string);
 begin
-//  FSection := ASection;
-  FDefault := ADefaults;
-
   FFields := ATargetFields.Split([',']);
-  if not FDefault.IsEmpty then
-    FDefaults := FDefault.Split([',']);
+  FDefaults := ADefaults.Split([',']);
+  FKeyNames := ATargetKeyNames.Split([',']);
 
   TArrayUtil.Trim(FFields);
   TArrayUtil.Trim(FDefaults);
+  TArrayUtil.Trim(FKeyNames);
 end;
 
 end.

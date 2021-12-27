@@ -112,7 +112,7 @@ end;
 procedure TCustomConfigLoader.CheckConfig;
 begin
   if not Assigned(FConfig) then
-    raise Exception.CreateFmt(SNotAssigned, ['config object']);
+    raise Exception.CreateFmt(SNotAssigned, [ClassName, 'config object']);
 end;
 
 procedure TCustomConfigLoader.ClearData;
@@ -206,10 +206,13 @@ begin
           var Idx := TArrayUtil.IndexOf<string>(LTargetAttr.Fields, LField.Name);
 
           var DefStrVal: string := '';
+          var FieldName: string := LField.Name;
           if (Idx > -1) and (Length(LTargetAttr.Defaults) > Idx) then
             DefStrVal := LTargetAttr.Defaults[Idx];
+          if (Idx > -1) and (Length(LTargetAttr.KeyNames) > Idx) then
+            FieldName := LTargetAttr.KeyNames[Idx];
 
-          var KeyFieldName: string := IfThen(LKeyName.IsEmpty, '', LKeyName + '.') + LField.Name;
+          var KeyFieldName: string := IfThen(LKeyName.IsEmpty, '', LKeyName + '.') + FieldName;
           if ConvertStrToValue(LField.FieldType.Handle, DefStrVal, LDefaultValue) then
           begin
             var FieldValue: TValue := DoReadValue(LAttr.Section, KeyFieldName, LDefaultValue);
@@ -231,7 +234,7 @@ begin
       end;
 
       if LValue.IsEmpty then
-        raise Exception.CreateFmt(STypeNotSupported, [LProp.PropertyType.Name]);
+        raise Exception.CreateFmt(STypeNotSupported, [ClassName, LProp.PropertyType.Name]);
 
       LProp.SetValue(TObject(FConfig), LValue);
     end;
@@ -287,8 +290,12 @@ begin
           var Idx := TArrayUtil.IndexOf<string>(LTargetAttr.Fields, LField.Name);
           if Idx = -1 then
             Continue;
+          var FieldName: string := LField.Name;
+          if (Idx > -1) and (Length(LTargetAttr.KeyNames) > Idx) then
+            FieldName := LTargetAttr.KeyNames[Idx];
 
-          var KeyFieldName: string := IfThen(LKeyName.IsEmpty, '', LKeyName + '.') + LField.Name;
+
+          var KeyFieldName: string := IfThen(LKeyName.IsEmpty, '', LKeyName + '.') + FieldName;
 
           DoWriteValue(
             LAttr.Section,
@@ -323,7 +330,6 @@ var
 begin
   CheckConfig;
 
-  DoBeforeSaveConfig;
   LCtx := TRttiContext.Create;
   try
     LType := LCtx.GetType(TObject(FConfig).ClassType);
@@ -363,13 +369,15 @@ begin
         begin
           var Idx := TArrayUtil.IndexOf<string>(LTargetAttr.Fields, LField.Name);
 
+          if Idx = -1 then
+            Continue;
+
           var DefStrVal: string := '';
           var FieldName: string := LField.Name;
-          if (Idx > -1) and (Length(LTargetAttr.Defaults) > Idx) then
-          begin
+          if Length(LTargetAttr.Defaults) > Idx then
             DefStrVal := LTargetAttr.Defaults[Idx];
-            FieldName := LTargetAttr.Fields[Idx];
-          end;
+          if Length(LTargetAttr.KeyNames) > Idx then
+            FieldName := LTargetAttr.KeyNames[Idx];
 
           var KeyFieldName: string := IfThen(LKeyName.IsEmpty, '', LKeyName + '.') + FieldName;
           if ConvertStrToValue(LField.FieldType.Handle, DefStrVal, LDefaultValue) then
@@ -393,8 +401,6 @@ begin
     end;
   finally
     LCtx.Free;
-
-    DoAfterSaveConfig;
   end;
 end;
 
