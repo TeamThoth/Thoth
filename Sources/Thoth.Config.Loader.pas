@@ -4,10 +4,13 @@ interface
 
 uses
   System.Rtti,
+  System.SysUtils,
   Thoth.Classes,
   Thoth.Config.Types;
 
 type
+  TExtractConfigAttributeProc = TProc<string, string, TValue>;
+
   TCustomConfigLoader = class(TNoRefCountObject, IConfigLoader)
   private
     procedure SetConfig(const Value: IConfig);
@@ -30,6 +33,10 @@ type
     procedure DoAfterSaveConfig; virtual;
 
     procedure DoClearData; virtual;
+
+    /// <summary>Config 객체의 Config 특성 추출 후 ACallback으로 전달</summary>
+    ///  <param name="ACallback">TProc<SectionName, KeyName></param>
+    procedure ExtractConfigAttribute(ACallback: TExtractConfigAttributeProc);
   public
     procedure LoadConfig;
     procedure SaveConfig;
@@ -43,7 +50,6 @@ implementation
 
 uses
   System.TypInfo,
-  System.SysUtils,
   System.StrUtils,
 
   Thoth.ResourceStrings,
@@ -293,6 +299,97 @@ begin
       end
       else
         DoWriteValue(LAttr.Section, LKeyName, LProp.GetValue(TObject(FConfig)));
+    end;
+  finally
+    LCtx.Free;
+
+    DoAfterSaveConfig;
+  end;
+end;
+
+procedure TCustomConfigLoader.ExtractConfigAttribute(
+  ACallback: TExtractConfigAttributeProc);
+var
+  LCtx: TRttiContext;
+  LType: TRttiType;
+  LProp: TRttiProperty;
+  LField: TRttiField;
+
+  LAttr: ConfigItemAttribute;
+  LDefaultValue: TValue;
+  LTargetAttr: ConfigTargetFieldsAttribute;
+  LValue: TValue;
+  LKeyName: string;
+begin
+  CheckConfig;
+
+  DoBeforeSaveConfig;
+  LCtx := TRttiContext.Create;
+  try
+    LType := LCtx.GetType(TObject(FConfig).ClassType);
+    for LProp in LType.GetProperties do
+    begin
+      if not LProp.IsReadable then
+        Continue;
+
+      LAttr := TAttributeUtil.FindAttribute<ConfigItemAttribute>(LProp.GetAttributes);
+      if not Assigned(LAttr) then
+        Continue;
+
+      var KeyAttr := TAttributeUtil.FindAttribute<ConfigKeyNameAttribute>(LProp.GetAttributes);
+      if Assigned(KeyAttr) then
+        LKeyName := KeyAttr.Name
+      else
+        LKeyName := LProp.Name;
+
+
+      LValue := TValue.Empty;
+
+      // [열거형] 기본 값이 문자열로 지정 됨, 타입 변환 후 값 읽을 것
+      if (LProp.PropertyType.Handle.Kind = tkEnumeration) and (LProp.PropertyType.Handle <> TypeInfo(Boolean)) then
+      begin
+        if ConvertStrToValue(LProp.PropertyType.Handle, LAttr.Default.AsString, LDefaultValue) then
+          LValue := DoReadValue(LAttr.Section, LKeyName, LDefaultValue);
+      end
+      // [구조체] 대상필드 및 기본 값을 쉼표구분으로 지정 됨(ConfigTargetFieldsAttribute)
+      else if LProp.PropertyType.Handle.Kind = tkRecord then
+      begin
+        LValue := LProp.GetValue(FConfig);
+        LTargetAttr := TAttributeUtil.FindAttribute<ConfigTargetFieldsAttribute>(LProp.GetAttributes);
+        if not Assigned(LTargetAttr) then
+          Continue;
+
+        for LField in LProp.PropertyType.GetFields do
+        begin
+          var Idx := TArrayUtil.IndexOf<string>(LTargetAttr.Fields, LField.Name);
+
+          var DefStrVal: string := '';
+          var FieldName: string := LField.Name;
+          if (Idx > -1) and (Length(LTargetAttr.Defaults) > Idx) then
+          begin
+            DefStrVal := LTargetAttr.Defaults[Idx];
+            FieldName := LTargetAttr.Fields[Idx];
+          end;
+
+          var KeyFieldName: string := IfThen(LKeyName.IsEmpty, '', LKeyName + '.') + FieldName;
+          if ConvertStrToValue(LField.FieldType.Handle, DefStrVal, LDefaultValue) then
+            ACallback(LAttr.Section, KeyFieldName, LDefaultValue);
+        end;
+
+        Continue
+      end
+      else
+      begin
+        LDefaultValue := LAttr.Default;
+        if LDefaultValue.IsEmpty then
+          TValue.Make(nil, LProp.PropertyType.Handle, LDefaultValue);
+
+        // 특성의 기본 값이 문자열로 지정 시 DefaultValue 타입 변경
+        if (LDefaultValue.TypeInfo <> LProp.PropertyType.Handle) and (LDefaultValue.TypeInfo = TypeInfo(string)) then
+          ConvertStrToValue(LProp.PropertyType.Handle, LDefaultValue.AsString, LDefaultValue);
+      end;
+
+      ACallback(LAttr.Section, LKeyName, LDefaultValue);
     end;
   finally
     LCtx.Free;

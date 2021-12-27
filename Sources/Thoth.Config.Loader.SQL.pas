@@ -15,20 +15,28 @@ uses
   System.Rtti, System.Generics.Collections;
 
 type
+  TConfigItemInfo = record
+    KeyName: string;
+    DefaultValue: TValue;
+
+    constructor Create(AKeyName: string; ADefaultValue: TValue);
+  end;
+
   TSQLConfigLoader = class(TCustomConfigLoader)
   private
     FFetchAll: Boolean;
     FConnection: TFDConnection;
+    FOwnQuery: Boolean;
     FQuery: TFDQuery;
 
-    FDictionary: TDictionary<string, TValue>;
-    FDbFieldNames: TList<string>;
+    FConfigItemInfos: TList<TConfigItemInfo>;
 
     FTableName: string;
     procedure SetConnection(const Value: TFDConnection);
     procedure SetQuery(const Value: TFDQuery);
 
-    procedure CollectFields;
+    /// <Summary>Config 객체에서 필드 정보 추출</Summary>
+    procedure ExtractFieldNames(AConfig: IConfig);
   protected
     procedure DoInitialize; override;
 
@@ -57,12 +65,15 @@ uses
   Thoth.ResourceStrings;
 
 
-{ TSQLConfigLoader }
+{ TConfigItemInfo }
 
-procedure TSQLConfigLoader.CollectFields;
+constructor TConfigItemInfo.Create(AKeyName: string; ADefaultValue: TValue);
 begin
-
+  KeyName := AKeyName;
+  DefaultValue := ADefaultValue;
 end;
+
+{ TSQLConfigLoader }
 
 constructor TSQLConfigLoader.Create(AFetchAll: Boolean);
 begin
@@ -70,25 +81,67 @@ begin
 
   if FFetchAll then
   begin
-    FDictionary := TDictionary<string, TValue>.Create;
-    FDbFieldNames := TList<string>.Create;
+//    FDictionary := TDictionary<string, TValue>.Create;
+    FConfigItemInfos := TList<TConfigItemInfo>.Create;
   end;
 end;
 
 destructor TSQLConfigLoader.Destroy;
 begin
-  if Assigned(FDictionary) then
-    FDictionary.Free;
-  if Assigned(FDbFieldNames) then
-    FDbFieldNames.Free;
+//  if Assigned(FDictionary) then
+//    FDictionary.Free;
+  if Assigned(FConfigItemInfos) then
+    FConfigItemInfos.Free;
+
+  if FOwnQuery then
+    FQuery.Free;
 
   inherited;
+end;
+
+procedure TSQLConfigLoader.ExtractFieldNames(AConfig: IConfig);
+begin
+  FConfigItemInfos.Clear;
+
+  ExtractConfigAttribute(procedure(ASectionName, AKeyName: string; ADefaultValue: TValue)
+  begin
+    FConfigItemInfos.Add(TConfigItemInfo.Create(AKeyName, ADefaultValue));
+  end);
 end;
 
 procedure TSQLConfigLoader.DoInitialize;
 begin
   if not Assigned(FConnection) then
     raise Exception.CreateFmt(SNotAssigned, ['Connection']);
+
+  if FFetchAll then
+    ExtractFieldNames(FConfig);
+
+  FOwnQuery := False;
+  if not Assigned(FQuery) then
+  begin
+    FOwnQuery := True;
+    FQuery := TFDQuery.Create(nil);
+    FQuery.Connection := FConnection;
+  end;
+end;
+
+procedure TSQLConfigLoader.DoBeforeLoadConfig;
+var
+  Info: TConfigItemInfo;
+  SQL, Fields, Conds: string;
+begin
+  inherited;
+
+  Fields := '''''';
+  for Info in FConfigItemInfos do
+    Fields := Fields + ', ' + Info.KeyName;
+  Conds := ' 1> 0';
+
+  SQL := Format('SELECT %s FROM %s WHERE %s', [Fields, FTableName, Conds]);
+  FQuery.Close;
+  FQuery.SQL.Text := SQL;
+  FQuery.Open;
 end;
 
 procedure TSQLConfigLoader.DoAfterLoadConfig;
@@ -98,12 +151,6 @@ begin
 end;
 
 procedure TSQLConfigLoader.DoAfterSaveConfig;
-begin
-  inherited;
-
-end;
-
-procedure TSQLConfigLoader.DoBeforeLoadConfig;
 begin
   inherited;
 

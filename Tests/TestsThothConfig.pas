@@ -172,7 +172,7 @@ begin
     var
       Loader: TSQLConfigLoader;
     begin
-      Loader := TSQLConfigLoader.Create;
+      Loader := TSQLConfigLoader.Create(True);
       Loader.Connection := FConnection;
 
       Result := Loader;
