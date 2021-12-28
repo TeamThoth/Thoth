@@ -16,14 +16,14 @@ type
     FOnToggle: TObserverToggleEvent;
     FOnUpdateControl: TUpdateControlEvent<T>;
 
-    // IObserver
+    { IObserver }
     procedure Removed;
     function GetActive: Boolean;
     procedure SetActive(Value: Boolean);
     function GetOnObserverToggle: TObserverToggleEvent;
     procedure SetOnObserverToggle(AEvent: TObserverToggleEvent);
 
-    // IControlValueObserver
+    { IControlValueObserver }
     procedure ValueModified;
     procedure ValueUpdate;
   protected
@@ -32,7 +32,7 @@ type
     constructor Create(AComponent: TComponent; AProperty: string);
     destructor Destroy; override;
 
-    procedure Notify(const Value: T);
+    procedure UpdateControlValue(const Value: T);
 
     property OnUpdateControl: TUpdateControlEvent<T> read FOnUpdateControl write FOnUpdateControl;
   end;
@@ -45,9 +45,8 @@ type
     function GetValue: T;
     procedure SetValue(const Value: T);
 
-    procedure Notify(const Value: T);
-
-    procedure UpdateControlValue(const Value: T);
+    procedure UpdateValue(const Value: T);
+    procedure ControlValueChanged(const Value: T);
   public
     constructor Create;
     destructor Destroy; override;
@@ -99,7 +98,7 @@ begin
   Result := FOnToggle;
 end;
 
-procedure TBindComponent<T>.Notify(const Value: T);
+procedure TBindComponent<T>.UpdateControlValue(const Value: T);
 var
   LCtx: TRttiContext;
   LValue: TValue;
@@ -180,21 +179,21 @@ begin
 
   FValue := Value;
 
-  Notify(Value);
+  UpdateValue(Value);
 end;
 
-procedure TObservableField<T>.UpdateControlValue(const Value: T);
+procedure TObservableField<T>.ControlValueChanged(const Value: T);
 begin
   FValue := Value;
 end;
 
-procedure TObservableField<T>.Notify(const Value: T);
+procedure TObservableField<T>.UpdateValue(const Value: T);
 var
   I: Integer;
 begin
   for I := 0 to FBindingList.Count - 1 do
   begin
-    FBindingList[I].Notify(Value);
+    FBindingList[I].UpdateControlValue(Value);
   end;
 end;
 
@@ -207,7 +206,7 @@ begin
 
   // Add to binds
   BindComp := TBindComponent<T>.Create(AComponent, AProperty);
-  BindComp.OnUpdateControl := UpdateControlValue;
+  BindComp.OnUpdateControl := ControlValueChanged;
   FBindingList.Add(BindComp);
 
 //  AComponent.Observers.AddObserver()
