@@ -24,7 +24,9 @@ uses
   Thoth.Classes in '..\Sources\Thoth.Classes.pas',
   Thoth.ResourceStrings in '..\Sources\Thoth.ResourceStrings.pas',
   Thoth.Config.Loader.SQL in '..\Sources\Thoth.Config.Loader.SQL.pas',
-  TestsDatas in 'TestsDatas.pas';
+  TestsDatas in 'TestsDatas.pas',
+  Thoth.Bind.ObservableField in '..\Sources\Thoth.Bind.ObservableField.pas',
+  TestsThothObservableField in 'TestsThothObservableField.pas';
 
 {$IFNDEF TESTINSIGHT}
 var
