@@ -51,8 +51,6 @@ begin
   Field := TObservableField<Integer>.Create;
   Field.BindComponent(Edit, 'Text');
 
-  Edit.SetFocus;
-
   Edit.Text := '300';
   Edit.Perform(CM_EXIT, 0, 0);
 

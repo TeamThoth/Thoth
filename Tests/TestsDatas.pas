@@ -86,11 +86,10 @@ type
 
 const
   CONFIG_CREATE_SQL = 'CREATE TABLE IF NOT EXISTS ThConfig(' +
-    '   user_id VARCHAR(16) NOT NULL' +
-    ',  int INTEGER' +
-    ',  Str VARCHAR(256)' +
-    ',  WS VARCHAR(256)' +
-    ',  TestInt INTEGER' +
+    '   idx integer PRIMARY KEY AUTOINCREMENT' +
+    ',  type varchar(8)' +
+    ',  key VARCHAR(32)' +
+    ',  value VARCHAR(256)' +
   ')';
 {$ENDREGION}
 

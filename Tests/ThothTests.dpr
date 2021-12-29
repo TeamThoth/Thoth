@@ -26,7 +26,8 @@ uses
   Thoth.Config.Loader.SQL in '..\Sources\Thoth.Config.Loader.SQL.pas',
   TestsDatas in 'TestsDatas.pas',
   Thoth.Bind.ObservableField in '..\Sources\Thoth.Bind.ObservableField.pas',
-  TestsThothObservableField in 'TestsThothObservableField.pas';
+  TestsThothObservableField in 'TestsThothObservableField.pas',
+  Thoth.Config.SQLExecutor.FireDAC in '..\Sources\Thoth.Config.SQLExecutor.FireDAC.pas';
 
 {$IFNDEF TESTINSIGHT}
 var

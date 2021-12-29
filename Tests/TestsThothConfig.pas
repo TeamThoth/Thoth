@@ -47,6 +47,7 @@ uses
   Thoth.Config,
   Thoth.Config.Loader.IniFile,
   Thoth.Config.Loader.SQL,
+  Thoth.Config.SQLExecutor.FireDAC,
 
   System.SysUtils, System.IniFiles,
   Vcl.Forms, System.Types;
@@ -171,9 +172,11 @@ end;
 function TThothConfigTest.DefaultSQLConfigLoader: IConfigLoader;
 var
   Loader: TSQLConfigLoader;
+  SQLExecutor: TSQLConfigFireDACExecutor;
 begin
-  Loader := TSQLConfigLoader.Create(True);
-  Loader.Connection := FConnection;
+  SQLExecutor := TSQLConfigFireDACExecutor.Create(FConnection);
+
+  Loader := TSQLConfigLoader.Create(SQLExecutor);
 
   Result := Loader;
 end;
@@ -184,6 +187,7 @@ var
 begin
   Conf := TSQLConfig.Create(DefaultSQLConfigLoader);
 
+  Conf.Clear;
   Conf.Load;
 
   Assert.AreEqual(Conf.Int, 10);

@@ -202,7 +202,7 @@ procedure TObservableField<T>.BindComponent(AComponent: TComponent;
 var
   BindComp: TBindComponent<T>;
 begin
-  // Check property
+  // Check property(T와 AProperty간 변환 가능여부 판단)
 
   // Add to binds
   BindComp := TBindComponent<T>.Create(AComponent, AProperty);

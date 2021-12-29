@@ -4,7 +4,8 @@ interface
 
 uses
   System.SysUtils,
-  System.Rtti;
+  System.Rtti,
+  Data.DB;
 
 type
   IConfig = interface
@@ -26,6 +27,15 @@ type
   end;
 
   TConfigLoaderCreateFunc = TFunc<IConfigLoader>;
+
+  ISQLConfigExecutor = interface
+    ['{1AE931AD-05FD-4FA9-837F-E4E88FDD674F}']
+    procedure FetchAll;
+    function FetchField(const ASection, AKey: string): TField;
+    procedure UpdateField(const ASection, AKey: string; AValue: TValue);
+    procedure DeleteAll;
+    procedure Close;
+  end;
 
 {$REGION 'Attribute'}
   /// <summary>설정 이름 지정(활용: ini 파일명, DB테이블명 등)</summary>
