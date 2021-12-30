@@ -6,6 +6,7 @@ uses
   DUnitX.TestFramework,
   TestsDatas,
   Thoth.Config.Types,
+  Thoth.Config.Loader.SQL,
 
   FireDAC.Comp.Client,
   FireDAC.Phys.SQLiteWrapper.Stat,
@@ -17,7 +18,7 @@ type
   private
     FConnection: TFDConnection;
 
-    function DefaultSQLConfigLoader: IConfigLoader;
+    function DefaultSQLConfigLoader: TSQLConfigLoader;
   public
     [SetupFixture]    procedure SetupFixture;
     [TearDownFixture] procedure TearDownFixture;
@@ -39,6 +40,9 @@ type
 
     [Test]
     procedure TestSaveSQLConfig;
+
+    [Test]
+    procedure TestLoadSQLConfig;
   end;
 
 implementation
@@ -46,8 +50,7 @@ implementation
 uses
   Thoth.Config,
   Thoth.Config.Loader.IniFile,
-  Thoth.Config.Loader.SQL,
-  Thoth.Config.SQLExecutor.FireDAC,
+  Thoth.Config.SQLExecutor,
 
   System.SysUtils, System.IniFiles,
   Vcl.Forms, System.Types;
@@ -83,9 +86,7 @@ var
   Conf: TIniConfig;
 begin
   Conf := TIniConfig.Create(TIniConfig.DefaultLoader);
-
   Conf.Clear;
-  Conf.Load;
 
   Assert.AreEqual(Conf.Int, 10);
   Assert.AreEqual(Conf.Str, 'abcd');
@@ -107,8 +108,6 @@ var
   IniFile: TIniFile;
 begin
   Conf := TIniConfig.Create(TIniFileConfigLoader.Create as IConfigLoader);
-
-  Conf.Load;
 
   Conf.Int := 100;
   Conf.Str := '°¡³ª´Ù';
@@ -141,7 +140,6 @@ begin
     end
   );
   Conf.Clear;
-  Conf.Load;
 
   Conf.Int := 256;
   Conf.Str := 'How are you?';
@@ -159,7 +157,6 @@ begin
   Conf.Free;
 
   Conf := TIniConfig.Create(TIniConfig.DefaultLoader);
-  Conf.Load;
 
   Assert.AreEqual(Conf.Int, 256);
   Assert.AreEqual(Conf.Str, 'How are you?');
@@ -169,13 +166,12 @@ begin
   Conf.Free;
 end;
 
-function TThothConfigTest.DefaultSQLConfigLoader: IConfigLoader;
+function TThothConfigTest.DefaultSQLConfigLoader: TSQLConfigLoader;
 var
   Loader: TSQLConfigLoader;
   SQLExecutor: TSQLConfigFireDACExecutor;
 begin
   SQLExecutor := TSQLConfigFireDACExecutor.Create(FConnection);
-
   Loader := TSQLConfigLoader.Create(SQLExecutor);
 
   Result := Loader;
@@ -186,14 +182,15 @@ var
   Conf: TSQLConfig;
 begin
   Conf := TSQLConfig.Create(DefaultSQLConfigLoader);
-
   Conf.Clear;
-  Conf.Load;
 
   Assert.AreEqual(Conf.Int, 10);
   Assert.AreEqual(Conf.Str, 'abcd');
   Assert.AreEqual(Conf.TestWS.WS, wsMinimized);
   Assert.AreEqual(Conf.TestWS.Int, 20);
+  Assert.AreEqual(FormatDateTime('YYYY-MM-DD', Conf.DtmStr), '2021-12-23');
+
+  Conf.Free;
 end;
 
 procedure TThothConfigTest.TestSaveSQLConfig;
@@ -201,7 +198,6 @@ var
   Conf: TSQLConfig;
 begin
   Conf := TSQLConfig.Create(DefaultSQLConfigLoader);
-  Conf.Load;
 
   Conf.Int := 30;
   Conf.Str := 'test';
@@ -211,6 +207,32 @@ begin
   Conf.TestWS := Rec;
 
   Conf.Save;
+
+  Conf.Free;
+end;
+
+procedure TThothConfigTest.TestLoadSQLConfig;
+var
+  Conf: TSQLConfig;
+  Int: Integer;
+begin
+  Conf := TSQLConfig.Create(DefaultSQLConfigLoader);
+  Conf.Int := 90;
+  Conf.Str := 'saved';
+  Conf.DtmStr := EncodeDate(2021, 12, 30);
+  var Rec := Conf.TestWS;
+  Rec.WS := wsMaximized;
+  Rec.Int := 200;
+  Conf.TestWS := Rec;
+  Conf.Save;
+  Conf.Free;
+
+  Conf := TSQLConfig.Create(DefaultSQLConfigLoader);
+  Assert.AreEqual(Conf.Int, 90);
+  Assert.AreEqual(Conf.Str, 'saved');
+  Assert.AreEqual(Conf.DtmStr, EncodeDate(2021, 12, 30));
+  Assert.AreEqual(Conf.TestWS.WS, wsMaximized);
+  Conf.Free;
 end;
 
 initialization

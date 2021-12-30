@@ -11,7 +11,8 @@ uses
 type
   TExtractConfigAttributeProc = TProc<string, string, TValue>;
 
-  TCustomConfigLoader = class(TNoRefCountObject, IConfigLoader)
+//  TCustomConfigLoader = class(TNoRefCountObject, IConfigLoader)
+  TCustomConfigLoader = class(TInterfacedObject, IConfigLoader)
   private
     procedure SetConfig(const Value: IConfig);
 
@@ -55,57 +56,6 @@ uses
   Thoth.ResourceStrings,
   Thoth.Config,
   Thoth.Utils;
-
-function ConvertStrToValue(ATypeInfo: PTypeInfo; AStr: string; var Value: TValue): Boolean;
-begin
-  Value := TValue.Empty;
-  try
-    case ATypeInfo.Kind of
-      tkInteger:
-        Value := TValue.From<Integer>(StrToIntDef(AStr, 0));
-      tkInt64:
-        Value := TValue.From<Int64>(StrToInt64Def(AStr, 0));
-
-      tkFloat:
-        if ATypeInfo = TypeInfo(TDateTime) then
-          Value := TValue.From<TDateTime>(StrToDateTimeDef(AStr, 0))
-        else
-          Value := TValue.From<Double>(StrToFloatDef(AStr, 0));
-
-      tkString, tkLString, tkWString, tkUString:
-        Value := TValue.From<string>(AStr);
-
-      tkEnumeration:
-        begin
-          var EnumValue: Integer;
-          if AStr = '' then
-            EnumValue := GetTypeData(ATypeInfo)^.MinValue
-          else
-            EnumValue := GetEnumValue(ATypeInfo, AStr);
-          Value := TValue.FromOrdinal(ATypeInfo, EnumValue);
-        end;
-
-      // not support
-      tkUnknown: ;
-      tkSet: ;
-      tkClass: ;
-      tkMethod: ;
-      tkVariant: ;
-      tkArray: ;
-      tkRecord: ;
-      tkInterface: ;
-      tkDynArray: ;
-      tkClassRef: ;
-      tkPointer: ;
-      tkProcedure: ;
-      tkMRecord: ;
-    end;
-  except
-    Value := TValue.Empty;
-  end;
-
-  Result := not Value.IsEmpty;
-end;
 
 { TCustomConfigLoader }
 
@@ -190,7 +140,7 @@ begin
       // [열거형] 기본 값이 문자열로 지정 됨, 타입 변환 후 값 읽을 것
       if (LProp.PropertyType.Handle.Kind = tkEnumeration) and (LProp.PropertyType.Handle <> TypeInfo(Boolean)) then
       begin
-        if ConvertStrToValue(LProp.PropertyType.Handle, LAttr.Default.AsString, LDefaultValue) then
+        if TRttiUtil.TryStrToValue(LProp.PropertyType.Handle, LAttr.Default.AsString, LDefaultValue) then
           LValue := DoReadValue(LAttr.Section, LKeyName, LDefaultValue);
       end
       // [구조체] 대상필드 및 기본 값을 쉼표구분으로 지정 됨(ConfigTargetFieldsAttribute)
@@ -213,7 +163,7 @@ begin
             FieldName := LTargetAttr.KeyNames[Idx];
 
           var KeyFieldName: string := IfThen(LKeyName.IsEmpty, '', LKeyName + '.') + FieldName;
-          if ConvertStrToValue(LField.FieldType.Handle, DefStrVal, LDefaultValue) then
+          if TRttiUtil.TryStrToValue(LField.FieldType.Handle, DefStrVal, LDefaultValue) then
           begin
             var FieldValue: TValue := DoReadValue(LAttr.Section, KeyFieldName, LDefaultValue);
             LField.SetValue(LValue.GetReferenceToRawData, FieldValue);
@@ -228,7 +178,7 @@ begin
 
         // 특성의 기본 값이 문자열로 지정 시 DefaultValue 타입 변경
         if (LDefaultValue.TypeInfo <> LProp.PropertyType.Handle) and (LDefaultValue.TypeInfo = TypeInfo(string)) then
-          ConvertStrToValue(LProp.PropertyType.Handle, LDefaultValue.AsString, LDefaultValue);
+          TRttiUtil.TryStrToValue(LProp.PropertyType.Handle, LDefaultValue.AsString, LDefaultValue);
 
         LValue := DoReadValue(LAttr.Section, LKeyName, LDefaultValue);
       end;
@@ -354,7 +304,7 @@ begin
       // [열거형] 기본 값이 문자열로 지정 됨, 타입 변환 후 값 읽을 것
       if (LProp.PropertyType.Handle.Kind = tkEnumeration) and (LProp.PropertyType.Handle <> TypeInfo(Boolean)) then
       begin
-        if ConvertStrToValue(LProp.PropertyType.Handle, LAttr.Default.AsString, LDefaultValue) then
+        if TRttiUtil.TryStrToValue(LProp.PropertyType.Handle, LAttr.Default.AsString, LDefaultValue) then
           LValue := DoReadValue(LAttr.Section, LKeyName, LDefaultValue);
       end
       // [구조체] 대상필드 및 기본 값을 쉼표구분으로 지정 됨(ConfigTargetFieldsAttribute)
@@ -380,7 +330,7 @@ begin
             FieldName := LTargetAttr.KeyNames[Idx];
 
           var KeyFieldName: string := IfThen(LKeyName.IsEmpty, '', LKeyName + '.') + FieldName;
-          if ConvertStrToValue(LField.FieldType.Handle, DefStrVal, LDefaultValue) then
+          if TRttiUtil.TryStrToValue(LField.FieldType.Handle, DefStrVal, LDefaultValue) then
             ACallback(LAttr.Section, KeyFieldName, LDefaultValue);
         end;
 
@@ -394,7 +344,7 @@ begin
 
         // 특성의 기본 값이 문자열로 지정 시 DefaultValue 타입 변경
         if (LDefaultValue.TypeInfo <> LProp.PropertyType.Handle) and (LDefaultValue.TypeInfo = TypeInfo(string)) then
-          ConvertStrToValue(LProp.PropertyType.Handle, LDefaultValue.AsString, LDefaultValue);
+          TRttiUtil.TryStrToValue(LProp.PropertyType.Handle, LDefaultValue.AsString, LDefaultValue);
       end;
 
       ACallback(LAttr.Section, LKeyName, LDefaultValue);

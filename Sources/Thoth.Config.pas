@@ -23,6 +23,7 @@ type
 
     constructor Create(ACreateFunc: TConfigLoaderCreateFunc); overload;
     constructor Create(AConfigName: string; ACreateFunc: TConfigLoaderCreateFunc); overload;
+    destructor Destroy; override;
 
     procedure Load;
     procedure Save;
@@ -31,7 +32,6 @@ type
 
     property ConfigName: string read GetConfigName write SetConfigName;
 
-    destructor Destroy; override;
     class function DefaultLoader: IConfigLoader;
   end;
 
@@ -71,8 +71,10 @@ constructor TThothConfig.Create(AConfigName: string; ALoader: IConfigLoader);
 begin
   FConfigName := AConfigName;
   FLoader := ALoader;
-  if Assigned(FLoader) then
-    FLoader.SetConfig(Self);
+
+  CheckLoader;
+  FLoader.SetConfig(Self);
+  FLoader.LoadConfig;
 end;
 
 procedure TThothConfig.CheckLoader;
@@ -86,6 +88,7 @@ begin
   CheckLoader;
 
   FLoader.ClearData;
+  FLoader.LoadConfig;
 end;
 
 procedure TThothConfig.Load;
@@ -128,8 +131,9 @@ end;
 
 destructor TThothConfig.Destroy;
 begin
-  if Assigned(FLoader) then
-    FreeAndNil(TObject(FLoader));
+//  FLoader := nil;
+//  if Assigned(FLoader) then
+//    TObject(FLoader).Free;
 
   inherited;
 end;

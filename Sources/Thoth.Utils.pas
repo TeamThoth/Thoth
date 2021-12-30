@@ -3,7 +3,8 @@ unit Thoth.Utils;
 interface
 
 uses
-  System.Rtti, System.SysUtils,
+  System.Rtti, System.TypInfo,
+  System.SysUtils,
   System.Generics.Defaults;
 
 type
@@ -25,6 +26,10 @@ type
     class function Add<T>(var Items: TArray<T>; Value: T): Integer;
 
     class procedure Trim(var Items: TArray<string>);
+  end;
+
+  TRttiUtil = class
+    class function TryStrToValue(ATypeInfo: PTypeInfo; AStr: string; var Value: TValue): Boolean;
   end;
 
 implementation
@@ -131,6 +136,61 @@ end;
 class function TArrayUtil.Contains<T>(const Items: TArray<T>; Value: T): Boolean;
 begin
   Result := IndexOf<T>(Items, Value) <> -1;
+end;
+
+{ TRttiUtil }
+
+class function TRttiUtil.TryStrToValue(ATypeInfo: PTypeInfo; AStr: string;
+  var Value: TValue): Boolean;
+begin
+  Value := TValue.Empty;
+  try
+    case ATypeInfo.Kind of
+      tkInteger:
+        Value := TValue.From<Integer>(StrToIntDef(AStr, 0));
+      tkInt64:
+        Value := TValue.From<Int64>(StrToInt64Def(AStr, 0));
+
+      tkFloat:
+        if ATypeInfo = TypeInfo(TDateTime) then
+          Value := TValue.From<TDateTime>(StrToDateTimeDef(AStr, 0))
+        else
+          Value := TValue.From<Double>(StrToFloatDef(AStr, 0));
+
+      tkString, tkLString, tkWString, tkUString:
+        Value := TValue.From<string>(AStr);
+
+      tkEnumeration:
+        begin
+          var EnumValue: Integer;
+          if AStr = '' then
+            EnumValue := GetTypeData(ATypeInfo)^.MinValue
+          else
+            EnumValue := GetEnumValue(ATypeInfo, AStr);
+          Value := TValue.FromOrdinal(ATypeInfo, EnumValue);
+        end;
+      // not support
+//      tkUnknown: ;
+//      tkSet: ;
+//      tkClass: ;
+//      tkMethod: ;
+//      tkVariant: ;
+//      tkArray: ;
+//      tkRecord: ;
+//      tkInterface: ;
+//      tkDynArray: ;
+//      tkClassRef: ;
+//      tkPointer: ;
+//      tkProcedure: ;
+//      tkMRecord: ;
+//    else
+//      raise Exception.Create('Not support type: ' + ATypeInfo.Name);
+    end;
+  except
+    Value := TValue.Empty;
+  end;
+
+  Result := not Value.IsEmpty;
 end;
 
 end.

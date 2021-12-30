@@ -11,6 +11,7 @@ uses
   {$ELSE}
   DUnitX.Loggers.Console,
   DUnitX.Loggers.Xml.NUnit,
+  DUNitX.MemoryLeakMonitor.FastMM4,
   {$ENDIF }
   DUnitX.TestFramework,
   TestsThothConfig in 'TestsThothConfig.pas',
@@ -27,7 +28,7 @@ uses
   TestsDatas in 'TestsDatas.pas',
   Thoth.Bind.ObservableField in '..\Sources\Thoth.Bind.ObservableField.pas',
   TestsThothObservableField in 'TestsThothObservableField.pas',
-  Thoth.Config.SQLExecutor.FireDAC in '..\Sources\Thoth.Config.SQLExecutor.FireDAC.pas';
+  Thoth.Config.SQLExecutor in '..\Sources\Thoth.Config.SQLExecutor.pas';
 
 {$IFNDEF TESTINSIGHT}
 var
@@ -37,6 +38,8 @@ var
   nunitLogger : ITestLogger;
 {$ENDIF}
 begin
+//  ReportMemoryLeaksOnShutdown := True;
+
 {$IFDEF TESTINSIGHT}
   TestInsight.DUnitX.RunRegisteredTests;
 {$ELSE}

@@ -5,6 +5,7 @@ interface
 uses
   Thoth.Config.Types,
   Thoth.Config.Loader,
+  Thoth.Config.SQLExecutor,
   // FireDAC
   FireDAC.Stan.Intf, FireDAC.Stan.Option,
   FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf, FireDAC.Stan.Def,
@@ -15,30 +16,6 @@ uses
   System.Rtti, System.Generics.Collections;
 
 type
-//  TConfigItemInfo = record
-//    KeyName: string;
-//    DefaultValue: TValue;
-//    Value: TValue;
-//
-//    constructor Create(AKeyName: string; ADefaultValue: TValue);
-//  end;
-//
-  TConfigItem = class
-  private
-    FDefaultValue: TValue;
-    FValue: TValue;
-  public
-    constructor Create(ADefaultValue: TValue);
-
-    property DefaultValue: TValue read FDefaultValue;
-    property Value: TValue read FValue write FValue;
-  end;
-
-  TConfigItems = class(TObjectDictionary<string, TConfigItem>)
-  public
-    procedure Add(AKeyName: string; ADefaultValue: TValue); overload;
-  end;
-
   TSQLConfigLoader = class(TCustomConfigLoader)
   private
     FSQLExecutor: ISQLConfigExecutor;
@@ -67,22 +44,9 @@ implementation
 
 uses
   System.SysUtils,
+  System.Variants,
   Thoth.ResourceStrings;
 
-
-{ TConfigItem }
-
-constructor TConfigItem.Create(ADefaultValue: TValue);
-begin
-  FDefaultValue := ADefaultValue;
-end;
-
-{ TConfigItems }
-
-procedure TConfigItems.Add(AKeyName: string; ADefaultValue: TValue);
-begin
-  Add(AKeyName, TConfigItem.Create(ADefaultValue));
-end;
 
 { TSQLConfigLoader }
 
@@ -93,7 +57,6 @@ end;
 
 destructor TSQLConfigLoader.Destroy;
 begin
-
   inherited;
 end;
 
@@ -108,20 +71,22 @@ end;
 
 procedure TSQLConfigLoader.DoBeforeLoadConfig;
 begin
+  FSQLExecutor.FetchesBegin;
 end;
 
 procedure TSQLConfigLoader.DoAfterLoadConfig;
 begin
-  FSQLExecutor.Close;
+  FSQLExecutor.FetchesEnd;
 end;
 
 procedure TSQLConfigLoader.DoBeforeSaveConfig;
 begin
+  FSQLExecutor.FetchesBegin;
 end;
 
 procedure TSQLConfigLoader.DoAfterSaveConfig;
 begin
-  FSQLExecutor.Close;
+  FSQLExecutor.FetchesEnd;
 end;
 
 procedure TSQLConfigLoader.DoClearData;
@@ -132,36 +97,32 @@ end;
 function TSQLConfigLoader.DoReadValue(const ASection, AKey: string;
   ADefault: TValue): TValue;
 var
-  Field: TField;
-  V: Variant;
+  Value: Variant;
 begin
-  Field := FSQLExecutor.FetchField(ASection, AKey);
+  Value := FSQLExecutor.FetchField(ASection, AKey);
 
-  if not Assigned(Field) then
-    Exit(ADefault);
-
-  if Field.IsNull then
+  if VarIsNull(Value) then
     Exit(ADefault);
 
   case ADefault.TypeInfo.Kind of
     tkString, tkLString, tkWString, tkUString:
-      Result := TValue.From<string>(Field.AsString);
+      Result := TValue.From<string>(Value);
 
     tkInteger, tkInt64:
-      Result := TValue.From<Integer>(Field.AsInteger);
+      Result := TValue.From<Integer>(Value);
 
     tkFloat:
       if ADefault.TypeInfo = TypeInfo(TDateTime) then
-        Result := TValue.From<TDateTime>(Field.AsDateTime)
+        Result := TValue.From<TDateTime>(VarToDateTime(Value))
       else
-        Result := TValue.From<Double>(Field.AsFloat);
+        Result := TValue.From<Double>(Value);
 
     tkEnumeration:
       if ADefault.TypeInfo = TypeInfo(Boolean) then
-        Result := TValue.From<Boolean>(Field.AsBoolean)
+        Result := TValue.From<Boolean>(Value)
       else
       begin
-        var IntVal := Field.AsInteger;
+        var IntVal: Integer := Value;
         Result := TValue.FromOrdinal(ADefault.TypeInfo, IntVal);
       end
   else
@@ -171,23 +132,10 @@ end;
 
 procedure TSQLConfigLoader.DoWriteValue(const ASection, AKey: string;
   AValue: TValue);
-var
-  LValue: TValue;
-  Item: TConfigItem;
 begin
   inherited;
 
-  case AValue.TypeInfo.Kind of
-    tkEnumeration:
-      if AValue.TypeInfo = TypeInfo(Boolean) then
-        LValue := TValue.From<Boolean>(AValue.AsBoolean)
-      else
-        LValue := TValue.From<Integer>(AValue.AsOrdinal);
-  else
-    LValue := AValue;
-  end;
-
-  FSQLExecutor.UpdateField(ASection, AKey, AValue);
+  FSQLExecutor.UpdateFieldData(ASection, AKey, AValue.AsVariant);
 end;
 
 end.

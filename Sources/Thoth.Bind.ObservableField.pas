@@ -24,8 +24,8 @@ type
     procedure SetOnObserverToggle(AEvent: TObserverToggleEvent);
 
     { IControlValueObserver }
-    procedure ValueModified;
-    procedure ValueUpdate;
+    procedure ValueModified;  // KeyPress 시 발생
+    procedure ValueUpdate;    // Exit(LostFocus) 시 발생
   protected
     procedure DoUpdateControl(const Value: T);
   public
@@ -54,7 +54,10 @@ type
     property Value: T read GetValue write SetValue;
 
     procedure BindComponent(AComponent: TComponent; AProperty: string);
+    { TODO : Observe(Callback) 추가 / multple observer 처리 }
     procedure RemoveBindComponent(AComponent: TComponent; AProperty: string = '');
+
+    { TODO : 컴포넌트 제거 시 BindComp 정보 정리 }
   end;
 
 implementation
@@ -105,7 +108,7 @@ var
 begin
   LValue := TValue.From<T>(Value);
 
-  { TODO : Casting 처리 필요 }
+  { TODO : Dynamic Casting 처리 필요. 데이터의 타입을 속성 타입으로 치환 }
   LValue := TValue.From<string>(LValue.ToString);
 
   LCtx
@@ -132,7 +135,6 @@ end;
 
 procedure TBindComponent<T>.ValueModified;
 begin
-
 end;
 
 procedure TBindComponent<T>.ValueUpdate;
