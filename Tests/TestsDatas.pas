@@ -7,10 +7,14 @@ uses
   Thoth.Config.Types,
   Thoth.Config.SQLExecutor,
 
+  System.Classes, System.Types, System.Rtti,
   Vcl.Forms,
-  System.Types, System.Rtti,
-  Data.DB,
-  FireDAC.Comp.Client;
+  Data.DB, FireDAC.Comp.Client,
+  FireDAC.Stan.Def, FireDAC.Stan.Param, FireDAC.Stan.Async, FireDAC.DApt
+;
+
+const
+  CONFIG_NAME = 'ThConfig';
 
 type
   TRec1 = record
@@ -18,9 +22,9 @@ type
     Int: Integer;
   end;
 
-{$REGION 'IniConfig'}
-  [ConfigName('ThConfig.ini')]
-  TIniConfig = class(TThothConfig)
+{$REGION 'Config class'}
+  [ConfigName(CONFIG_NAME)]
+  TTestConfig = class(TThothConfig)
   private
     FInt: Integer;
     FIntDef: Integer;
@@ -69,39 +73,9 @@ type
   end;
 {$ENDREGION}
 
-{$REGION 'SQLConfig'}
-  [ConfigName('ThConfig')] // Database
-  TSQLConfig = class(TThothConfig)
-  private
-    FInt: Integer;
-    FStr: string;
-    FRec1: TRec1;
-    FDtmStr: TDatetime;
-    FBool: Boolean;
-  public
-    [ConfigItem('TestSect', 10)] // TableName
-    property Int: Integer read FInt write FInt;
-
-    [ConfigItem('TestSect', 'abcd')]
-    property Str: string read FStr write FStr;
-
-    [ConfigItem('TestSect', False)]
-    property Bool: Boolean read FBool write FBool;
-
-    [ConfigItem('TestSect')]
-    [ConfigKeyName('')]
-    [ConfigTargetFields('WS, Int', 'wsMinimized, 20', 'WS, TestInt')]
-    property TestWS: TRec1 read FRec1 write FRec1;
-
-    [ConfigItem('TestSect', '2021-12-23')]
-    [ConfigKeyName('DateTimeStr')]
-    property DtmStr: TDatetime read FDtmStr write FDtmStr;
-
-    destructor Destroy; override;
-  end;
-
+{$REGION 'SQLConfig data'}
 const
-  CONFIG_CREATE_SQL = 'CREATE TABLE IF NOT EXISTS ThConfig(' +
+  CONFIG_CREATE_SQL = 'CREATE TABLE IF NOT EXISTS ' + CONFIG_NAME + '(' +
     '   idx integer PRIMARY KEY AUTOINCREMENT' +
     ',  type varchar(8)' +
     ',  key VARCHAR(32)' +
@@ -116,8 +90,8 @@ type
     FIsOwnQuery: Boolean;
   public
 //    procedure FetchesBegin; override;
-    function FetchField(const ASection, AKey: string): Variant; override;
-    procedure UpdateFieldData(const ASection, AKey: string; AValue: Variant); override;
+    function FetchFieldValue(const ASection, AKey: string): Variant; override;
+    procedure UpdateFieldValue(const ASection, AKey: string; AValue: Variant); override;
     procedure FetchesEnd; override;
     procedure DeleteAll; override;
 
@@ -130,7 +104,7 @@ type
 implementation
 
 uses
-  System.Variants;
+  System.SysUtils, System.Variants;
 
 { TSQLConfigFireDACExecutor }
 
@@ -156,10 +130,10 @@ begin
   inherited;
 end;
 
-function TSQLConfigFireDACExecutor.FetchField(const ASection, AKey: string): Variant;
+function TSQLConfigFireDACExecutor.FetchFieldValue(const ASection, AKey: string): Variant;
 begin
   FQuery.Close;
-  FQuery.SQL.Text := 'SELECT value FROM ThConfig WHERE type = :TYPE AND key = :KEY';
+  FQuery.SQL.Text := Format('SELECT value FROM %s WHERE type = :TYPE AND key = :KEY', [TableName]);
   FQuery.Params[0].AsString := ASection;
   FQuery.Params[1].AsString := AKey;
   FQuery.Open;
@@ -170,13 +144,13 @@ begin
   Result := FQuery.Fields[0].AsVariant;
 end;
 
-procedure TSQLConfigFireDACExecutor.UpdateFieldData(const ASection,
+procedure TSQLConfigFireDACExecutor.UpdateFieldValue(const ASection,
   AKey: string; AValue: Variant);
 begin
-  FQuery.ExecSQL('DELETE FROM ThConfig WHERE type = :TYPE AND key = :KEY', [ASection, AKey]);
+  FQuery.ExecSQL(Format('DELETE FROM %s WHERE type = :TYPE AND key = :KEY', [TableName]), [ASection, AKey]);
 
   FQUery.Prepare;
-  FQuery.SQL.Text := 'INSERT INTO ThConfig(type, key, value) ' +
+  FQuery.SQL.Text := Format('INSERT INTO %s(type, key, value) ', [TableName]) +
                       'VALUES(:TYPE, :KEY, :VALUE)';
   FQuery.Params[0].AsString := ASection;
   FQuery.Params[1].AsString := AKey;
@@ -191,14 +165,7 @@ end;
 
 procedure TSQLConfigFireDACExecutor.DeleteAll;
 begin
-  FQuery.ExecSQL('DELETE FROM ThConfig');
-end;
-
-{ TSQLConfig }
-
-destructor TSQLConfig.Destroy;
-begin
-  inherited;
+  FQuery.ExecSQL('DELETE FROM ' + TableName);
 end;
 
 end.

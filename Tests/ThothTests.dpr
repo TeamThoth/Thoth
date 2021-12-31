@@ -28,7 +28,9 @@ uses
   TestsDatas in 'TestsDatas.pas',
   Thoth.Bind.ObservableField in '..\Sources\Thoth.Bind.ObservableField.pas',
   TestsThothObservableField in 'TestsThothObservableField.pas',
-  Thoth.Config.SQLExecutor in '..\Sources\Thoth.Config.SQLExecutor.pas';
+  Thoth.Config.SQLExecutor in '..\Sources\Thoth.Config.SQLExecutor.pas',
+  TestObservableFieldForm in 'TestObservableFieldForm.pas' {frmObsFld},
+  Thoth.Bind.BindList in '..\Sources\Thoth.Bind.BindList.pas';
 
 {$IFNDEF TESTINSIGHT}
 var

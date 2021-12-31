@@ -6,12 +6,6 @@ uses
   Thoth.Config.Types,
   Thoth.Config.Loader,
   Thoth.Config.SQLExecutor,
-  // FireDAC
-  FireDAC.Stan.Intf, FireDAC.Stan.Option,
-  FireDAC.Stan.Error, FireDAC.UI.Intf, FireDAC.Phys.Intf, FireDAC.Stan.Def,
-  FireDAC.Stan.Pool, FireDAC.Stan.Async, FireDAC.Phys, FireDAC.VCLUI.Wait,
-  FireDAC.Stan.Param, FireDAC.DatS, FireDAC.DApt.Intf, FireDAC.DApt, Data.DB,
-  FireDAC.Comp.DataSet, FireDAC.Comp.Client,
 
   System.Rtti, System.Generics.Collections;
 
@@ -34,7 +28,7 @@ type
     procedure DoBeforeSaveConfig; override;
     procedure DoAfterSaveConfig; override;
 
-    procedure DoClearData; override;
+    procedure DoResetConfig; override;
   public
     constructor Create(ASQLExecutor: ISQLConfigExecutor);
     destructor Destroy; override;
@@ -43,8 +37,7 @@ type
 implementation
 
 uses
-  System.SysUtils,
-  System.Variants,
+  System.SysUtils, System.Variants, System.TypInfo,
   Thoth.ResourceStrings;
 
 
@@ -67,6 +60,8 @@ begin
 
   if FTableName = '' then
     raise Exception.CreateFmt(SNotAssigned, [ClassName, 'TableName']);
+
+  FSQLExecutor.SetTableName(FTableName);
 end;
 
 procedure TSQLConfigLoader.DoBeforeLoadConfig;
@@ -89,7 +84,7 @@ begin
   FSQLExecutor.FetchesEnd;
 end;
 
-procedure TSQLConfigLoader.DoClearData;
+procedure TSQLConfigLoader.DoResetConfig;
 begin
   FSQLExecutor.DeleteAll;
 end;
@@ -99,7 +94,7 @@ function TSQLConfigLoader.DoReadValue(const ASection, AKey: string;
 var
   Value: Variant;
 begin
-  Value := FSQLExecutor.FetchField(ASection, AKey);
+  Value := FSQLExecutor.FetchFieldValue(ASection, AKey);
 
   if VarIsNull(Value) then
     Exit(ADefault);
@@ -135,7 +130,7 @@ procedure TSQLConfigLoader.DoWriteValue(const ASection, AKey: string;
 begin
   inherited;
 
-  FSQLExecutor.UpdateFieldData(ASection, AKey, AValue.AsVariant);
+  FSQLExecutor.UpdateFieldValue(ASection, AKey, AValue.AsVariant);
 end;
 
 end.

@@ -30,6 +30,12 @@ type
 
   TRttiUtil = class
     class function TryStrToValue(ATypeInfo: PTypeInfo; AStr: string; var Value: TValue): Boolean;
+    class function HasProperty(AInstance: TObject; AProperty: string): Boolean;
+    class function TryGetPropertyType(AInstance: TObject; AProperty: string; var ATypeInfo: PTypeInfo): Boolean;
+  end;
+
+  TValueHelper = record helper for TValue
+    function TryConvert(ATypeInfo: PTypeInfo; out AOut: TValue): Boolean;
   end;
 
 implementation
@@ -191,6 +197,82 @@ begin
   end;
 
   Result := not Value.IsEmpty;
+end;
+
+class function TRttiUtil.HasProperty(AInstance: TObject;
+  AProperty: string): Boolean;
+var
+  LCtx: TRttiContext;
+  LType: TRttiType;
+  LProp: TRttiProperty;
+begin
+  LCtx := TRttiContext.Create;
+  LType := LCtx.GetType(AInstance.ClassType);
+  LProp := LType.GetProperty(AProperty);
+  Result := Assigned(LProp);
+  LCtx.Free;
+end;
+
+class function TRttiUtil.TryGetPropertyType(AInstance: TObject;
+  AProperty: string; var ATypeInfo: PTypeInfo): Boolean;
+var
+  LCtx: TRttiContext;
+  LType: TRttiType;
+  LProp: TRttiProperty;
+begin
+  LCtx := TRttiContext.Create;
+  LType := LCtx.GetType(AInstance.ClassType);
+  LProp := LType.GetProperty(AProperty);
+  Result := Assigned(LProp);
+
+  ATypeInfo := LProp.PropertyType.Handle;
+  LCtx.Free;
+end;
+
+{ TValueHelper }
+//type
+//  TConvertFunc = function(const ASource: TValue; ATarget: PTypeInfo; var AResult: TValue): Boolean;
+//
+//const
+//  Conversions: array[0..9] of array[0..9] of TConvertFunc = (
+//  );
+
+function TValueHelper.TryConvert(ATypeInfo: PTypeInfo; out AOut: TValue): Boolean;
+begin
+  Result := False;
+
+  AOut := TValue.Empty;
+  case TypeInfo.Kind of
+  // Integer > string
+  tkInteger, tkInt64, tkEnumeration:
+    case ATypeInfo.Kind of
+    tkString, tkLString, tkWString, tkUString:
+      AOut := TValue.From<string>(IntToStr(AsInteger));
+    end;
+  tkString, tkLString, tkWString, tkUString:
+    case ATypeInfo.Kind of
+    tkInteger, tkInt64, tkEnumeration:
+      begin
+//        var S := AsString;
+//        var I := StrToIntDef(S, 0);
+//        AOut := TValue.FromOrdinal(ATypeInfo, I);
+        AOut := TValue.FromOrdinal(ATypeInfo, StrToIntDef(AsString, 0));
+      end;
+    tkFloat:
+      AOut := TVAlue.From<Extended>(StrToFloatDef(AsString, 0));
+    end;
+
+  tkFloat:
+    case ATypeInfo.Kind of
+    tkString, tkLString, tkWString, tkUString:
+      AOut := TValue.From<string>(FloatToStr(AsExtended));
+    end;
+  else
+    if TryCast(ATypeInfo, AOut) then
+      Exit(True);
+  end;
+
+  Result := not AOut.IsEmpty;
 end;
 
 end.

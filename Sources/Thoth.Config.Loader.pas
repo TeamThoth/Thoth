@@ -11,8 +11,7 @@ uses
 type
   TExtractConfigAttributeProc = TProc<string, string, TValue>;
 
-//  TCustomConfigLoader = class(TNoRefCountObject, IConfigLoader)
-  TCustomConfigLoader = class(TInterfacedObject, IConfigLoader)
+  TCustomConfigLoader = class abstract(TInterfacedObject, IConfigLoader)
   private
     procedure SetConfig(const Value: IConfig);
 
@@ -33,7 +32,7 @@ type
     procedure DoBeforeSaveConfig; virtual;
     procedure DoAfterSaveConfig; virtual;
 
-    procedure DoClearData; virtual;
+    procedure DoResetConfig; virtual;
 
     /// <summary>Config 객체의 Config 특성 추출 후 ACallback으로 전달</summary>
     ///  <param name="ACallback">TProc<SectionName, KeyName></param>
@@ -42,7 +41,7 @@ type
     procedure LoadConfig;
     procedure SaveConfig;
 
-    procedure ClearData;
+    procedure ResetConfig;
 
     property Config: IConfig read FConfig write SetConfig;
   end;
@@ -63,11 +62,6 @@ procedure TCustomConfigLoader.CheckConfig;
 begin
   if not Assigned(FConfig) then
     raise Exception.CreateFmt(SNotAssigned, [ClassName, 'config object']);
-end;
-
-procedure TCustomConfigLoader.ClearData;
-begin
-  DoClearData;
 end;
 
 procedure TCustomConfigLoader.SetConfig(const Value: IConfig);
@@ -97,7 +91,7 @@ procedure TCustomConfigLoader.DoAfterSaveConfig;
 begin
 end;
 
-procedure TCustomConfigLoader.DoClearData;
+procedure TCustomConfigLoader.DoResetConfig;
 begin
 end;
 
@@ -140,7 +134,8 @@ begin
       // [열거형] 기본 값이 문자열로 지정 됨, 타입 변환 후 값 읽을 것
       if (LProp.PropertyType.Handle.Kind = tkEnumeration) and (LProp.PropertyType.Handle <> TypeInfo(Boolean)) then
       begin
-        if TRttiUtil.TryStrToValue(LProp.PropertyType.Handle, LAttr.Default.AsString, LDefaultValue) then
+        var EnumTypeInfo: PTypeInfo := LProp.PropertyType.Handle;
+        if TRttiUtil.TryStrToValue(EnumTypeInfo, LAttr.Default.AsString, LDefaultValue) then
           LValue := DoReadValue(LAttr.Section, LKeyName, LDefaultValue);
       end
       // [구조체] 대상필드 및 기본 값을 쉼표구분으로 지정 됨(ConfigTargetFieldsAttribute)
@@ -240,16 +235,16 @@ begin
           var Idx := TArrayUtil.IndexOf<string>(LTargetAttr.Fields, LField.Name);
           if Idx = -1 then
             Continue;
+
           var FieldName: string := LField.Name;
           if (Idx > -1) and (Length(LTargetAttr.KeyNames) > Idx) then
             FieldName := LTargetAttr.KeyNames[Idx];
 
-
-          var KeyFieldName: string := IfThen(LKeyName.IsEmpty, '', LKeyName + '.') + FieldName;
+          var FieldKeyName: string := IfThen(LKeyName.IsEmpty, '', LKeyName + '.') + FieldName;
 
           DoWriteValue(
             LAttr.Section,
-            KeyFieldName,
+            FieldKeyName,
             LField.GetValue(LValue.GetReferenceToRawData)
           );
         end;
@@ -298,13 +293,13 @@ begin
       else
         LKeyName := LProp.Name;
 
-
       LValue := TValue.Empty;
 
       // [열거형] 기본 값이 문자열로 지정 됨, 타입 변환 후 값 읽을 것
       if (LProp.PropertyType.Handle.Kind = tkEnumeration) and (LProp.PropertyType.Handle <> TypeInfo(Boolean)) then
       begin
-        if TRttiUtil.TryStrToValue(LProp.PropertyType.Handle, LAttr.Default.AsString, LDefaultValue) then
+        var EnumTypeInfo: PTypeInfo := LProp.PropertyType.Handle;
+        if TRttiUtil.TryStrToValue(EnumTypeInfo, LAttr.Default.AsString, LDefaultValue) then
           LValue := DoReadValue(LAttr.Section, LKeyName, LDefaultValue);
       end
       // [구조체] 대상필드 및 기본 값을 쉼표구분으로 지정 됨(ConfigTargetFieldsAttribute)
@@ -318,7 +313,6 @@ begin
         for LField in LProp.PropertyType.GetFields do
         begin
           var Idx := TArrayUtil.IndexOf<string>(LTargetAttr.Fields, LField.Name);
-
           if Idx = -1 then
             Continue;
 
@@ -329,9 +323,9 @@ begin
           if Length(LTargetAttr.KeyNames) > Idx then
             FieldName := LTargetAttr.KeyNames[Idx];
 
-          var KeyFieldName: string := IfThen(LKeyName.IsEmpty, '', LKeyName + '.') + FieldName;
+          var FieldKeyName: string := IfThen(LKeyName.IsEmpty, '', LKeyName + '.') + FieldName;
           if TRttiUtil.TryStrToValue(LField.FieldType.Handle, DefStrVal, LDefaultValue) then
-            ACallback(LAttr.Section, KeyFieldName, LDefaultValue);
+            ACallback(LAttr.Section, FieldKeyName, LDefaultValue);
         end;
 
         Continue
@@ -352,6 +346,11 @@ begin
   finally
     LCtx.Free;
   end;
+end;
+
+procedure TCustomConfigLoader.ResetConfig;
+begin
+  DoResetConfig;
 end;
 
 end.

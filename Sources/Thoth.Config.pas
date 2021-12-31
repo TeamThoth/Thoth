@@ -7,7 +7,7 @@ uses
   Thoth.Config.Types;
 
 type
-  TThothConfig = class(TNoRefCountObject, IConfig)
+  TThothConfig = class abstract(TNoRefCountObject, IConfig)
   private
     FConfigName: string;
     FLoader: IConfigLoader;
@@ -28,11 +28,9 @@ type
     procedure Load;
     procedure Save;
 
-    procedure Clear;
+    procedure Reset;
 
     property ConfigName: string read GetConfigName write SetConfigName;
-
-    class function DefaultLoader: IConfigLoader;
   end;
 
 implementation
@@ -40,8 +38,7 @@ implementation
 uses
   System.SysUtils,
   Thoth.ResourceStrings,
-  Thoth.Utils,
-  Thoth.Config.Loader.IniFile // Default loader
+  Thoth.Utils
 ;
 
 { TCustomConfig }
@@ -83,11 +80,11 @@ begin
     raise Exception.CreateFmt(SNotAssigned, [ClassName, 'loader']);
 end;
 
-procedure TThothConfig.Clear;
+procedure TThothConfig.Reset;
 begin
   CheckLoader;
 
-  FLoader.ClearData;
+  FLoader.ResetConfig;
   FLoader.LoadConfig;
 end;
 
@@ -124,16 +121,8 @@ begin
   FConfigName := Value;
 end;
 
-class function TThothConfig.DefaultLoader: IConfigLoader;
-begin
-  Result := TIniFileConfigLoader.Create;
-end;
-
 destructor TThothConfig.Destroy;
 begin
-//  FLoader := nil;
-//  if Assigned(FLoader) then
-//    TObject(FLoader).Free;
 
   inherited;
 end;

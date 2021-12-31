@@ -3,49 +3,30 @@ unit Thoth.Bind.ObservableField;
 interface
 
 uses
-  System.Classes, System.Generics.Collections;
+  Thoth.Bind.BindList,
+  System.Classes, System.SysUtils, System.Generics.Collections;
 
 type
   TUpdateControlEvent<T> = procedure(const Value: T) of object;
 
-  TBindComponent<T> = class(TInterfacedObject, IObserver, IMultiCastObserver, IControlValueObserver)
-  private
-    FComponent: TComponent;
-    FProperty: string;
+  IObservableField = interface
+  ['{81695AA3-9A63-4CC2-A406-619AACD4368A}']
+    procedure BindComponent(AComponent: TComponent; AProperty: string);
+    procedure RemoveBindComponent(AComponent: TComponent; AProperty: string = '');
 
-    FOnToggle: TObserverToggleEvent;
-    FOnUpdateControl: TUpdateControlEvent<T>;
-
-    { IObserver }
-    procedure Removed;
-    function GetActive: Boolean;
-    procedure SetActive(Value: Boolean);
-    function GetOnObserverToggle: TObserverToggleEvent;
-    procedure SetOnObserverToggle(AEvent: TObserverToggleEvent);
-
-    { IControlValueObserver }
-    procedure ValueModified;  // KeyPress 시 발생
-    procedure ValueUpdate;    // Exit(LostFocus) 시 발생
-  protected
-    procedure DoUpdateControl(const Value: T);
-  public
-    constructor Create(AComponent: TComponent; AProperty: string);
-    destructor Destroy; override;
-
-    procedure UpdateControlValue(const Value: T);
-
-    property OnUpdateControl: TUpdateControlEvent<T> read FOnUpdateControl write FOnUpdateControl;
+    procedure Observe(AObject: TObject; ACallback: TProc);
+    procedure RemoveObserve(AObject: TObject);
   end;
 
-  TObservableField<T> = class
+  TObservableField<T> = class(TInterfacedObject, IObservableField)
   private
-    FBindingList: TList<TBindComponent<T>>;
+    FBindList: TBindList<T>;
 
     FValue: T;
     function GetValue: T;
     procedure SetValue(const Value: T);
 
-    procedure UpdateValue(const Value: T);
+    procedure ValueChanged(const Value: T);
     procedure ControlValueChanged(const Value: T);
   public
     constructor Create;
@@ -54,8 +35,12 @@ type
     property Value: T read GetValue write SetValue;
 
     procedure BindComponent(AComponent: TComponent; AProperty: string);
-    { TODO : Observe(Callback) 추가 / multple observer 처리 }
     procedure RemoveBindComponent(AComponent: TComponent; AProperty: string = '');
+
+    procedure Observe(AObject: TObject; ACallback: TProc);
+    procedure RemoveObserve(AObject: TObject);
+
+    procedure Notify;
 
     { TODO : 컴포넌트 제거 시 BindComp 정보 정리 }
   end;
@@ -63,105 +48,21 @@ type
 implementation
 
 uses
-  System.SysUtils,
+  Thoth.Utils, Thoth.ResourceStrings,
   System.Generics.Defaults,
   System.Rtti;
-
-{ TBindComponent }
-
-constructor TBindComponent<T>.Create(AComponent: TComponent;
-  AProperty: string);
-begin
-  FComponent := AComponent;
-  FProperty := AProperty;
-
-  FComponent.Observers.AddObserver(TObserverMapping.ControlValueID, Self);
-end;
-
-destructor TBindComponent<T>.Destroy;
-begin
-  FComponent.Observers.RemoveObserver(TObserverMapping.ControlValueID, Self);
-
-  inherited;
-end;
-
-procedure TBindComponent<T>.DoUpdateControl(const Value: T);
-begin
-  if Assigned(FOnUpdateControl) then
-    FOnUpdateControl(Value);
-end;
-
-function TBindComponent<T>.GetActive: Boolean;
-begin
-  Result := True;
-end;
-
-function TBindComponent<T>.GetOnObserverToggle: TObserverToggleEvent;
-begin
-  Result := FOnToggle;
-end;
-
-procedure TBindComponent<T>.UpdateControlValue(const Value: T);
-var
-  LCtx: TRttiContext;
-  LValue: TValue;
-begin
-  LValue := TValue.From<T>(Value);
-
-  { TODO : Dynamic Casting 처리 필요. 데이터의 타입을 속성 타입으로 치환 }
-  LValue := TValue.From<string>(LValue.ToString);
-
-  LCtx
-    .GetType(FComponent.ClassType)
-    .GetProperty(FProperty)
-    .SetValue(FComponent, LValue);
-end;
-
-procedure TBindComponent<T>.Removed;
-begin
-  WriteLn('Removed');
-end;
-
-procedure TBindComponent<T>.SetActive(Value: Boolean);
-begin
-  if Assigned(FOnToggle) then
-    FOnToggle(Self, Value);
-end;
-
-procedure TBindComponent<T>.SetOnObserverToggle(AEvent: TObserverToggleEvent);
-begin
-  FOnToggle := AEvent;
-end;
-
-procedure TBindComponent<T>.ValueModified;
-begin
-end;
-
-procedure TBindComponent<T>.ValueUpdate;
-var
-  LCtx: TRttiContext;
-  LValue: TValue;
-begin
-  LValue := LCtx.GetType(FComponent.ClassType)
-                .GetProperty(FProperty)
-                .GetValue(FComponent);
-
-  { TODO : Casting 처리 필요 }
-  LValue := TValue.From<Integer>(StrToInt(LValue.AsString));
-
-  DoUpdateControl(LValue.AsType<T>);
-end;
 
 { TObservableField<T> }
 
 constructor TObservableField<T>.Create;
 begin
-  FBindingList := TList<TBindComponent<T>>.Create;
+  FBindList := TBindList<T>.Create;
+  FBindList.OnControlValueChanged := ControlValueChanged;
 end;
 
 destructor TObservableField<T>.Destroy;
 begin
-  FBindingList.Free;
+  FBindList.Free;
 
   inherited;
 end;
@@ -169,6 +70,21 @@ end;
 function TObservableField<T>.GetValue: T;
 begin
   Result := FValue;
+end;
+
+procedure TObservableField<T>.Notify;
+begin
+  ValueChanged(FValue);
+end;
+
+procedure TObservableField<T>.Observe(AObject: TObject; ACallback: TProc);
+begin
+
+end;
+
+procedure TObservableField<T>.RemoveObserve(AObject: TObject);
+begin
+
 end;
 
 procedure TObservableField<T>.SetValue(const Value: T);
@@ -181,7 +97,7 @@ begin
 
   FValue := Value;
 
-  UpdateValue(Value);
+  ValueChanged(Value);
 end;
 
 procedure TObservableField<T>.ControlValueChanged(const Value: T);
@@ -189,29 +105,18 @@ begin
   FValue := Value;
 end;
 
-procedure TObservableField<T>.UpdateValue(const Value: T);
-var
-  I: Integer;
+procedure TObservableField<T>.ValueChanged(const Value: T);
 begin
-  for I := 0 to FBindingList.Count - 1 do
-  begin
-    FBindingList[I].UpdateControlValue(Value);
-  end;
+  FBindList.NotifyControls(Value);
 end;
 
 procedure TObservableField<T>.BindComponent(AComponent: TComponent;
   AProperty: string);
-var
-  BindComp: TBindComponent<T>;
 begin
-  // Check property(T와 AProperty간 변환 가능여부 판단)
+  if not TRttiUtil.HasProperty(AComponent, AProperty) then
+    raise Exception.CreateFmt(SNotFoundProperty, [AComponent.Name, AProperty]);
 
-  // Add to binds
-  BindComp := TBindComponent<T>.Create(AComponent, AProperty);
-  BindComp.OnUpdateControl := ControlValueChanged;
-  FBindingList.Add(BindComp);
-
-//  AComponent.Observers.AddObserver()
+  FBindList.Add(AComponent, AProperty);
 end;
 
 procedure TObservableField<T>.RemoveBindComponent(AComponent: TComponent;

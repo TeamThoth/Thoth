@@ -29,7 +29,7 @@ type
     procedure DoBeforeSaveConfig; override;
     procedure DoAfterSaveConfig; override;
 
-    procedure DoClearData; override;
+    procedure DoResetConfig; override;
   end;
 
 implementation
@@ -57,6 +57,9 @@ begin
     FFilename := ChangeFileExt(ParamStr(0), '.ini')
   else
     FFilename := ExtractFilePath(Paramstr(0)) + LName;
+
+  if ExtractFileExt(FFilename).ToLower <> '.ini' then
+    FFilename := FFilename + '.ini';
 end;
 
 procedure TIniFileConfigLoader.DoBeforeLoadConfig;
@@ -81,7 +84,7 @@ begin
   FIniFIle := nil;
 end;
 
-procedure TIniFileConfigLoader.DoClearData;
+procedure TIniFileConfigLoader.DoResetConfig;
 begin
   if TFile.Exists(FFileName) then
     TFile.Delete(FFileName);
