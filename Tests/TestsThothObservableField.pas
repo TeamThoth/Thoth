@@ -16,10 +16,13 @@ type
     [TearDown]  procedure TearDown;
 
     [Test]
-    procedure TestSetValue;
+    procedure TestIntStrSetValue;
 
     [Test]
-    procedure TestChangeControl;
+    procedure TestIntStrChangeControl;
+
+    [Test]
+    procedure TestEnumChangeControl;
 
     [Test]
     procedure TestObserve;
@@ -45,7 +48,7 @@ begin
   FForm.Free;
 end;
 
-procedure TThothObservableFieldTest.TestSetValue;
+procedure TThothObservableFieldTest.TestIntStrSetValue;
 var
   Field: TObservableField<Integer>;
 begin
@@ -58,7 +61,7 @@ begin
   Field.Free;
 end;
 
-procedure TThothObservableFieldTest.TestChangeControl;
+procedure TThothObservableFieldTest.TestIntStrChangeControl;
 var
   Field: TObservableField<Integer>;
 begin
@@ -73,6 +76,20 @@ begin
 
   Assert.AreEqual(Field.Value, 300);
   Field.Free;
+end;
+
+procedure TThothObservableFieldTest.TestEnumChangeControl;
+var
+  Field: TObservableField<TAlign>;
+begin
+  Field := TObservableField<TAlign>.Create;
+  Field.BindComponent(FForm.pnlChild, 'Align');
+
+  FForm.pnlChild.Align := alClient;
+//  Assert.AreEqual(Field.Value, alClient); // 변경을 감지하지 못함
+
+  Field.Value := alRight;
+  Assert.AreEqual(FForm.pnlChild.Align, alRight);
 end;
 
 procedure TThothObservableFieldTest.TestObserve;

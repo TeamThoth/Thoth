@@ -9,8 +9,8 @@ uses
 type
   TfrmObsFld = class(TForm)
     Edit1: TEdit;
-    Panel1: TPanel;
-    Panel2: TPanel;
+    pnlParent: TPanel;
+    pnlChild: TPanel;
     Edit2: TEdit;
     Label1: TLabel;
   private

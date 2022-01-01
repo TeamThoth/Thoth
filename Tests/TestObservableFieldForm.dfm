@@ -27,14 +27,14 @@ object frmObsFld: TfrmObsFld
     TabOrder = 0
     Text = 'Edit1'
   end
-  object Panel1: TPanel
+  object pnlParent: TPanel
     Left = 24
     Top = 53
     Width = 289
     Height = 108
     Caption = 'Parent'
     TabOrder = 1
-    object Panel2: TPanel
+    object pnlChild: TPanel
       Left = 56
       Top = 56
       Width = 185

@@ -30,7 +30,7 @@ uses
   TestsThothObservableField in 'TestsThothObservableField.pas',
   Thoth.Config.SQLExecutor in '..\Sources\Thoth.Config.SQLExecutor.pas',
   TestObservableFieldForm in 'TestObservableFieldForm.pas' {frmObsFld},
-  Thoth.Bind.BindList in '..\Sources\Thoth.Bind.BindList.pas';
+  Thoth.Bind.Bindings in '..\Sources\Thoth.Bind.Bindings.pas';
 
 {$IFNDEF TESTINSIGHT}
 var

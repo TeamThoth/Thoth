@@ -3,7 +3,7 @@ unit Thoth.Bind.ObservableField;
 interface
 
 uses
-  Thoth.Bind.BindList,
+  Thoth.Bind.Bindings,
   System.Classes, System.SysUtils, System.Generics.Collections;
 
 type
@@ -113,9 +113,6 @@ end;
 procedure TObservableField<T>.BindComponent(AComponent: TComponent;
   AProperty: string);
 begin
-  if not TRttiUtil.HasProperty(AComponent, AProperty) then
-    raise Exception.CreateFmt(SNotFoundProperty, [AComponent.Name, AProperty]);
-
   FBindList.Add(AComponent, AProperty);
 end;
 

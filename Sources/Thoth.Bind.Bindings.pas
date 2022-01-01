@@ -1,10 +1,10 @@
-unit Thoth.Bind.BindList;
+unit Thoth.Bind.Bindings;
 
 interface
 
 uses
   Thoth.Classes,
-  System.Classes, System.SysUtils, System.Generics.Collections;
+  System.Rtti, System.TypInfo, System.Classes, System.SysUtils, System.Generics.Collections;
 
 type
   TUpdateControlEvent<T> = procedure(const Value: T) of object;
@@ -19,11 +19,13 @@ type
   private
     FParent: IBindList<T>;
     FComponent: TComponent;
-    FProperty: string;
+    FPropName: string;
 
-    FOnToggle: TObserverToggleEvent;
+    FProperty: TRttiProperty;
+    FTypeInfo: PTypeInfo;
 
     { IObserver }
+    FOnToggle: TObserverToggleEvent;
     function GetActive: Boolean;
     procedure SetActive(Value: Boolean);
     function GetOnObserverToggle: TObserverToggleEvent;
@@ -39,7 +41,7 @@ type
     destructor Destroy; override;
 
     property Component: TComponent read FComponent;
-    property &Property: string read  FProperty;
+    property PropName: string read  FPropName;
   end;
 
   TBindList<T> = class(TNoRefCountObject, IBindList<T>)
@@ -63,20 +65,26 @@ type
 implementation
 
 uses
-  Thoth.Utils,
-  System.Rtti;
+  Thoth.Utils, Thoth.ResourceStrings;
 
 { TBindItem<T> }
 
 constructor TBindItem<T>.Create(AParent: IBindList<T>; AComponent: TComponent; AProperty: string);
+var
+  Ctx: TRttiContext;
 begin
   FParent := AParent;
   FComponent := AComponent;
-  FProperty := AProperty;
+  FPropName := AProperty;
+
+  FProperty := Ctx.GetType(FComponent.ClassType).GetProperty(FPropName);
+  if not Assigned(FProperty) then
+    raise Exception.CreateFmt(SNotFoundProperty, [ClassName, AComponent.Name, AProperty]);
+
+  FTypeInfo := FProperty.PropertyType.Handle;
 
   if not FComponent.Observers.CanObserve(TObserverMapping.ControlValueID) then
     Exit;
-
   FComponent.Observers.AddObserver(TObserverMapping.ControlValueID, Self);
 end;
 
@@ -84,7 +92,6 @@ destructor TBindItem<T>.Destroy;
 begin
   if not FComponent.Observers.CanObserve(TObserverMapping.ControlValueID) then
     Exit;
-
   FComponent.Observers.RemoveObserver(TObserverMapping.ControlValueID, Self);
 
   inherited;
@@ -95,20 +102,15 @@ begin
   Result := True;
 end;
 
-function TBindItem<T>.GetOnObserverToggle: TObserverToggleEvent;
-begin
-  Result := FOnToggle;
-end;
-
-procedure TBindItem<T>.Removed;
-begin
-
-end;
-
 procedure TBindItem<T>.SetActive(Value: Boolean);
 begin
   if Assigned(FOnToggle) then
     FOnToggle(Self, Value);
+end;
+
+function TBindItem<T>.GetOnObserverToggle: TObserverToggleEvent;
+begin
+  Result := FOnToggle;
 end;
 
 procedure TBindItem<T>.SetOnObserverToggle(AEvent: TObserverToggleEvent);
@@ -116,20 +118,20 @@ begin
   FOnToggle := AEvent;
 end;
 
+procedure TBindItem<T>.Removed;
+begin
+end;
+
 procedure TBindItem<T>.NotifyControlValue(const Value: T);
 var
-  LCtx: TRttiContext;
-  LValue: TValue;
+  LValue, Converted: TValue;
 begin
   LValue := TValue.From<T>(Value);
 
-  { TODO : Dynamic Casting 처리 필요. 데이터의 타입을 속성 타입으로 치환 }
-  LValue := TValue.From<string>(LValue.ToString);
+  if not LValue.TryConvert(FTypeInfo, Converted) then
+    Exit;
 
-  LCtx
-    .GetType(FComponent.ClassType)
-    .GetProperty(FProperty)
-    .SetValue(FComponent, LValue);
+  FProperty.SetValue(FComponent, Converted);
 end;
 
 procedure TBindItem<T>.ValueModified;
@@ -139,13 +141,10 @@ end;
 
 procedure TBindItem<T>.ValueUpdate;
 var
-  LCtx: TRttiContext;
   LValue, Converted: TValue;
   Value: T;
 begin
-  LValue := LCtx.GetType(FComponent.ClassType)
-                .GetProperty(FProperty)
-                .GetValue(FComponent);
+  LValue := FProperty.GetValue(FComponent);
 
   if not LValue.TryConvert(TypeInfo(T), Converted) then
     Exit;
@@ -160,13 +159,7 @@ begin
 end;
 
 destructor TBindList<T>.Destroy;
-var
-  Item: TBindItem<T>;
 begin
-//  Item := FList.Items[0];
-//
-//  FList.Items[0].Free;
-//  FList.Clear;
   FList.Free;
 
   inherited;
@@ -176,8 +169,6 @@ procedure TBindList<T>.Add(AComponent: TComponent; AProperty: string);
 var
   Item: TBindItem<T>;
 begin
-  // 변환 가능한지 확인(예> string > Integer, Enum > Integer)
-
   Item := TBindItem<T>.Create(Self, AComponent, AProperty);
   FList.Add(Item);
 end;
@@ -190,7 +181,7 @@ begin
   for I := 0 to FList.Count - 1 do
   begin
     Item := FList[I];
-    if (Item.Component = AComponent) and (Item.&Property = AProperty) then
+    if (Item.Component = AComponent) and (Item.PropName = AProperty) then
     begin
       FList.Delete(I);
       Exit;
