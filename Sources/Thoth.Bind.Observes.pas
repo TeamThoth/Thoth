@@ -15,6 +15,8 @@ type
 
     property Instance: TObject read FInstance;
     property Callback: TProc read FCallback;
+
+    procedure Notify;
   end;
   TObserveList<T> = class
   type
@@ -41,6 +43,11 @@ constructor TObserveItem.Create(AObject: TObject; ACallback: TProc);
 begin
   FInstance := AObject;
   FCallback := ACallback;
+end;
+
+procedure TObserveItem.Notify;
+begin
+  FCallback();
 end;
 
 { TObserveList<T>.TObserveItemCompare }
@@ -88,7 +95,7 @@ var
   Item: TObserveItem;
 begin
   for Item in FObserves do
-    Item.Callback();
+    Item.Notify;
 end;
 
 end.
