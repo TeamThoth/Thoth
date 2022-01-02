@@ -3,7 +3,7 @@ unit Thoth.Bind.ObservableField;
 interface
 
 uses
-  Thoth.Bind.Bindings,
+  Thoth.Bind.Bindings, Thoth.Bind.Observes,
   System.Classes, System.SysUtils, System.Generics.Collections;
 
 type
@@ -21,6 +21,7 @@ type
   TObservableField<T> = class(TInterfacedObject, IObservableField)
   private
     FBindList: TBindList<T>;
+    FObserveList: TObserveList<T>;
 
     FValue: T;
     function GetValue: T;
@@ -58,11 +59,14 @@ constructor TObservableField<T>.Create;
 begin
   FBindList := TBindList<T>.Create;
   FBindList.OnControlValueChanged := ControlValueChanged;
+
+  FObserveList := TObserveList<T>.Create;
 end;
 
 destructor TObservableField<T>.Destroy;
 begin
   FBindList.Free;
+  FObserveList.Free;
 
   inherited;
 end;
@@ -75,16 +79,6 @@ end;
 procedure TObservableField<T>.Notify;
 begin
   ValueChanged(FValue);
-end;
-
-procedure TObservableField<T>.Observe(AObject: TObject; ACallback: TProc);
-begin
-
-end;
-
-procedure TObservableField<T>.RemoveObserve(AObject: TObject);
-begin
-
 end;
 
 procedure TObservableField<T>.SetValue(const Value: T);
@@ -108,6 +102,7 @@ end;
 procedure TObservableField<T>.ValueChanged(const Value: T);
 begin
   FBindList.NotifyControls(Value);
+  FObserveList.Notify(Value);
 end;
 
 procedure TObservableField<T>.BindComponent(AComponent: TComponent;
@@ -118,6 +113,16 @@ end;
 
 procedure TObservableField<T>.RemoveBindComponent(AComponent: TComponent;
   AProperty: string);
+begin
+  FBindList.Remove(AComponent, AProperty);
+end;
+
+procedure TObservableField<T>.Observe(AObject: TObject; ACallback: TProc);
+begin
+  FObserveList.Add(AObject, ACallback);
+end;
+
+procedure TObservableField<T>.RemoveObserve(AObject: TObject);
 begin
 
 end;

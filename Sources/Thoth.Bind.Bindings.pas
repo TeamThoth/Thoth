@@ -4,7 +4,8 @@ interface
 
 uses
   Thoth.Classes,
-  System.Rtti, System.TypInfo, System.Classes, System.SysUtils, System.Generics.Collections;
+  System.Rtti, System.TypInfo, System.Classes, System.SysUtils,
+  System.Generics.Collections, System.Generics.Defaults;
 
 type
   TUpdateControlEvent<T> = procedure(const Value: T) of object;
@@ -45,6 +46,11 @@ type
   end;
 
   TBindList<T> = class(TNoRefCountObject, IBindList<T>)
+  type
+    TBindItemCompare = class(TComparer<TBindItem<T>>)
+    public
+      function Compare(const Left, Right: TBindItem<T>): Integer; override;
+    end;
   private
     FList: TObjectList<TBindItem<T>>;
     FOnControlValueChanged: TUpdateControlEvent<T>;
@@ -151,11 +157,26 @@ begin
   FParent.ControlValueChanged(Converted.AsType<T>);
 end;
 
+{ TBindList<T>.TBindListCompare }
+
+function TBindList<T>.TBindItemCompare.Compare(const Left, Right: TBindItem<T>): Integer;
+begin
+  Result := -1;
+  if (Left.Component = Right.Component) and (Left.PropName = Right.PropName) then
+    Result := 0
+  else
+  begin
+    Result := CompareStr(Left.Component.Name, Right.Component.Name);
+    if Result = 0 then
+      Result := CompareStr(Left.PropName, Right.PropName);
+  end;
+end;
+
 { TBindList<T> }
 
 constructor TBindList<T>.Create;
 begin
-  FList := TObjectList<TBindItem<T>>.Create(False);
+  FList := TObjectList<TBindItem<T>>.Create(TBindItemCompare.Create, True);
 end;
 
 destructor TBindList<T>.Destroy;
@@ -169,7 +190,14 @@ procedure TBindList<T>.Add(AComponent: TComponent; AProperty: string);
 var
   Item: TBindItem<T>;
 begin
+  // Duplicate
   Item := TBindItem<T>.Create(Self, AComponent, AProperty);
+  if FList.Contains(Item) then
+  begin
+    Item.Free;
+    Exit;
+  end;
+
   FList.Add(Item);
 end;
 

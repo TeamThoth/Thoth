@@ -16,10 +16,13 @@ type
     [TearDown]  procedure TearDown;
 
     [Test]
-    procedure TestIntStrSetValue;
+    procedure TestSetValue;
 
     [Test]
-    procedure TestIntStrChangeControl;
+    procedure TestIntAndStrSetValue;
+
+    [Test]
+    procedure TestChangeControl;
 
     [Test]
     procedure TestEnumChangeControl;
@@ -48,20 +51,41 @@ begin
   FForm.Free;
 end;
 
-procedure TThothObservableFieldTest.TestIntStrSetValue;
+procedure TThothObservableFieldTest.TestSetValue;
+var
+  IntField: TObservableField<Integer>;
+  StrField: TObservableField<string>;
+begin
+  IntField := TObservableField<Integer>.Create;
+  StrField := TObservableField<string>.Create;
+
+  IntField.BindComponent(FForm.Edit1, 'Width');
+  IntField.BindComponent(FForm.Edit1, 'Width');
+  IntField.Value := 100;
+  Assert.AreEqual(FForm.Edit1.Width, 100);
+
+  StrField.BindComponent(FForm.Edit1, 'Text');
+  StrField.Value := 'abcde';
+  Assert.AreEqual(FForm.Edit1.Text, 'abcde');
+
+  IntField.Free;
+  StrField.Free;
+end;
+
+procedure TThothObservableFieldTest.TestIntAndStrSetValue;
 var
   Field: TObservableField<Integer>;
 begin
   Field := TObservableField<Integer>.Create;
+
   Field.BindComponent(FForm.Edit1, 'Text');
-
   Field.Value := 100;
-
   Assert.AreEqual(FForm.Edit1.Text, '100');
+
   Field.Free;
 end;
 
-procedure TThothObservableFieldTest.TestIntStrChangeControl;
+procedure TThothObservableFieldTest.TestChangeControl;
 var
   Field: TObservableField<Integer>;
 begin
@@ -85,7 +109,7 @@ begin
   Field := TObservableField<TAlign>.Create;
   Field.BindComponent(FForm.pnlChild, 'Align');
 
-  FForm.pnlChild.Align := alClient;
+//  FForm.pnlChild.Align := alClient;
 //  Assert.AreEqual(Field.Value, alClient); // 변경을 감지하지 못함
 
   Field.Value := alRight;
@@ -119,8 +143,33 @@ begin
 end;
 
 procedure TThothObservableFieldTest.TestMultiObserve;
+var
+  Field: TObservableField<Integer>;
+  CallCount: Integer;
 begin
+  Field := TObservableField<Integer>.Create;
 
+  CallCount := 0;
+
+  Field.Value := 100;
+  Field.Observe(Self,
+    procedure
+    begin
+      Inc(CallCount);
+    end);
+  Field.Observe(Self,
+    procedure
+    begin
+      Inc(CallCount);
+    end);
+
+  Field.Value := 200;
+
+  Assert.AreEqual(CallCount, 2);
+
+  Field.RemoveObserve(Self);
+
+  Field.Free;
 end;
 
 initialization
