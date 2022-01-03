@@ -1,0 +1,60 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{FCD7DE3F-B956-48E8-9D93-F85E3A3A4378}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="Tests\ThothTests.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Samples\ThothConfig\ThothConfigSample.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Samples\ThothBind\ObservableFieldSample.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="ThothTests">
+        <MSBuild Projects="Tests\ThothTests.dproj"/>
+    </Target>
+    <Target Name="ThothTests:Clean">
+        <MSBuild Projects="Tests\ThothTests.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ThothTests:Make">
+        <MSBuild Projects="Tests\ThothTests.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="ThothConfigSample">
+        <MSBuild Projects="Samples\ThothConfig\ThothConfigSample.dproj"/>
+    </Target>
+    <Target Name="ThothConfigSample:Clean">
+        <MSBuild Projects="Samples\ThothConfig\ThothConfigSample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ThothConfigSample:Make">
+        <MSBuild Projects="Samples\ThothConfig\ThothConfigSample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="ObservableFieldSample">
+        <MSBuild Projects="Samples\ThothBind\ObservableFieldSample.dproj"/>
+    </Target>
+    <Target Name="ObservableFieldSample:Clean">
+        <MSBuild Projects="Samples\ThothBind\ObservableFieldSample.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ObservableFieldSample:Make">
+        <MSBuild Projects="Samples\ThothBind\ObservableFieldSample.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="ThothTests;ThothConfigSample;ObservableFieldSample"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="ThothTests:Clean;ThothConfigSample:Clean;ObservableFieldSample:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="ThothTests:Make;ThothConfigSample:Make;ObservableFieldSample:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

@@ -18,6 +18,7 @@ type
     procedure RemoveObserve(AObject: TObject);
   end;
 
+  { TODO : 쓰래드에서 적용 가능하도록 처리 필요 }
   TObservableField<T> = class(TInterfacedObject, IObservableField)
   private
     FBindList: TBindList<T>;
@@ -27,8 +28,8 @@ type
     function GetValue: T;
     procedure SetValue(const Value: T);
 
-    procedure ValueChanged(const Value: T);
-    procedure ControlValueChanged(const Value: T);
+    procedure ValueChanged(const ASource: TComponent; const Value: T);
+    procedure ControlValueChanged(const ASource: TComponent; const Value: T);
   public
     constructor Create;
     destructor Destroy; override;
@@ -42,9 +43,9 @@ type
     procedure RemoveObserve(AObject: TObject);
 
     procedure Notify;
-
-    { TODO : 컴포넌트 제거 시 BindComp 정보 정리 }
   end;
+
+  { TODO : ObservableList }
 
 implementation
 
@@ -78,7 +79,7 @@ end;
 
 procedure TObservableField<T>.Notify;
 begin
-  ValueChanged(FValue);
+  ValueChanged(nil, FValue);
 end;
 
 procedure TObservableField<T>.SetValue(const Value: T);
@@ -91,17 +92,18 @@ begin
 
   FValue := Value;
 
-  ValueChanged(Value);
+  ValueChanged(nil, Value);
 end;
 
-procedure TObservableField<T>.ControlValueChanged(const Value: T);
+procedure TObservableField<T>.ControlValueChanged(const ASource: TComponent; const Value: T);
 begin
   FValue := Value;
+  ValueChanged(ASource, Value);
 end;
 
-procedure TObservableField<T>.ValueChanged(const Value: T);
+procedure TObservableField<T>.ValueChanged(const ASource: TComponent; const Value: T);
 begin
-  FBindList.NotifyControls(Value);
+  FBindList.NotifyControls(ASource, Value);
   FObserveList.Notify(Value);
 end;
 

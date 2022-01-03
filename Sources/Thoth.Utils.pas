@@ -26,6 +26,8 @@ type
     class function Add<T>(var Items: TArray<T>; Value: T): Integer;
 
     class procedure Trim(var Items: TArray<string>);
+
+    class function Concat<T>(const values: array of TArray<T>): TArray<T>; static;
   end;
 
   TRttiUtil = class
@@ -56,12 +58,15 @@ begin
 end;
 
 class function TAttributeUtil.FindAttribute<T>(const AObject: TObject): T;
+var
+  LCtx: TRttiContext;
 begin
+  LCtx := TRttiContext.Create;
   Result := FindAttribute<T>(
-    TRttiContext.Create
+    LCtx
       .GetType(AObject.ClassType)
       .GetAttributes
-  );
+  ) as T;
 end;
 
 class function TAttributeUtil.GetAttributeCount<T>(const AType: TRttiType): Integer;
@@ -137,6 +142,24 @@ begin
   Result := Length(Items);
   SetLength(Items, Result + 1);
   Items[Result] := Value;
+end;
+
+class function TArrayUtil.Concat<T>(
+  const values: array of TArray<T>): TArray<T>;
+var
+  i, k, n: Integer;
+begin
+  n := 0;
+  for i := Low(values) to High(values) do
+    Inc(n, Length(values[i]));
+  SetLength(Result, n);
+  n := 0;
+  for i := Low(values) to High(values) do
+    for k := Low(values[i]) to High(values[i]) do
+    begin
+      Result[n] := values[i, k];
+      Inc(n);
+    end;
 end;
 
 class function TArrayUtil.Contains<T>(const Items: TArray<T>; Value: T): Boolean;

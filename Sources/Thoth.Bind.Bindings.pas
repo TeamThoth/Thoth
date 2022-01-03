@@ -8,21 +8,20 @@ uses
   System.Generics.Collections, System.Generics.Defaults;
 
 type
-  TUpdateControlEvent<T> = procedure(const Value: T) of object;
+  TUpdateControlEvent<T> = procedure(const ASource: TComponent; const Value: T) of object;
 
   IBindList<T> = interface
   ['{1AFDEF31-D3AB-4432-962B-F6E757D75CFF}']
-    procedure NotifyControls(const Value: T);
-    procedure ControlValueChanged(const Value: T);
+    procedure NotifyControls(const ASource: TComponent; const Value: T);
+    procedure ControlValueChanged(const ASource: TComponent; const Value: T);
   end;
 
   TBindItem<T> = class(TNoRefCountObject, IObserver, IMultiCastObserver, IControlValueObserver)
   private
     FParent: IBindList<T>;
     FComponent: TComponent;
-    FPropName: string;
+    FProperty: string;
 
-    FProperty: TRttiProperty;
     FTypeInfo: PTypeInfo;
 
     { IObserver }
@@ -42,7 +41,7 @@ type
     destructor Destroy; override;
 
     property Component: TComponent read FComponent;
-    property PropName: string read  FPropName;
+    property &Property: string read  FProperty;
   end;
 
   TBindList<T> = class(TNoRefCountObject, IBindList<T>)
@@ -63,8 +62,8 @@ type
 
     property OnControlValueChanged: TUpdateControlEvent<T> read FOnControlValueChanged write FOnControlValueChanged;
 
-    procedure NotifyControls(const Value: T);
-    procedure ControlValueChanged(const Value: T);
+    procedure NotifyControls(const ASource: TComponent; const Value: T);
+    procedure ControlValueChanged(const ASource: TComponent; const Value: T);
   end;
 
 
@@ -77,17 +76,18 @@ uses
 
 constructor TBindItem<T>.Create(AParent: IBindList<T>; AComponent: TComponent; AProperty: string);
 var
-  Ctx: TRttiContext;
+  LProp: TRttiProperty;
 begin
   FParent := AParent;
   FComponent := AComponent;
-  FPropName := AProperty;
+  FProperty := AProperty;
 
-  FProperty := Ctx.GetType(FComponent.ClassType).GetProperty(FPropName);
-  if not Assigned(FProperty) then
+  LProp := TRttiContext.Create.GetType(FComponent.ClassType).GetProperty(FProperty);
+//  FProperty := Ctx.GetType(FComponent.ClassType).GetProperty(FPropName);
+  if not Assigned(LProp) then
     raise Exception.CreateFmt(SNotFoundProperty, [ClassName, AComponent.Name, AProperty]);
 
-  FTypeInfo := FProperty.PropertyType.Handle;
+  FTypeInfo := LProp.PropertyType.Handle;
 
   if not FComponent.Observers.CanObserve(TObserverMapping.ControlValueID) then
     Exit;
@@ -130,6 +130,7 @@ end;
 
 procedure TBindItem<T>.NotifyControlValue(const Value: T);
 var
+  LProp: TRttiProperty;
   LValue, Converted: TValue;
 begin
   LValue := TValue.From<T>(Value);
@@ -137,24 +138,31 @@ begin
   if not LValue.TryConvert(FTypeInfo, Converted) then
     Exit;
 
-  FProperty.SetValue(FComponent, Converted);
+  LProp := TRttiContext.Create.GetType(FComponent.ClassType).GetProperty(FProperty);
+  LProp.SetValue(FComponent, Converted);
 end;
 
 procedure TBindItem<T>.ValueModified;
+var
+  LValue, Converted: TValue;
+  Value: T;
 begin
+//  LValue := FProperty.GetValue(FComponent);
 
 end;
 
 procedure TBindItem<T>.ValueUpdate;
 var
+  LProp: TRttiProperty;
   LValue, Converted: TValue;
   Value: T;
 begin
-  LValue := FProperty.GetValue(FComponent);
+  LProp := TRttiContext.Create.GetType(FComponent.ClassType).GetProperty(FProperty);
+  LValue := LProp.GetValue(FComponent);
 
   if not LValue.TryConvert(TypeInfo(T), Converted) then
     Exit;
-  FParent.ControlValueChanged(Converted.AsType<T>);
+  FParent.ControlValueChanged(FComponent, Converted.AsType<T>);
 end;
 
 { TBindList<T>.TBindListCompare }
@@ -162,13 +170,13 @@ end;
 function TBindList<T>.TBindItemCompare.Compare(const Left, Right: TBindItem<T>): Integer;
 begin
   Result := -1;
-  if (Left.Component = Right.Component) and (Left.PropName = Right.PropName) then
+  if (Left.Component = Right.Component) and (Left.&Property = Right.&Property) then
     Result := 0
   else
   begin
     Result := CompareStr(Left.Component.Name, Right.Component.Name);
     if Result = 0 then
-      Result := CompareStr(Left.PropName, Right.PropName);
+      Result := CompareStr(Left.&Property, Right.&Property);
   end;
 end;
 
@@ -209,7 +217,7 @@ begin
   for I := 0 to FList.Count - 1 do
   begin
     Item := FList[I];
-    if (Item.Component = AComponent) and (Item.PropName = AProperty) then
+    if (Item.Component = AComponent) and (Item.&Property = AProperty) then
     begin
       FList.Delete(I);
       Exit;
@@ -217,18 +225,19 @@ begin
   end;
 end;
 
-procedure TBindList<T>.ControlValueChanged(const Value: T);
+procedure TBindList<T>.ControlValueChanged(const ASource: TComponent; const Value: T);
 begin
   if Assigned(FOnControlValueChanged) then
-    FOnControlValueChanged(Value);
+    FOnControlValueChanged(ASource, Value);
 end;
 
-procedure TBindList<T>.NotifyControls(const Value: T);
+procedure TBindList<T>.NotifyControls(const ASource: TComponent; const Value: T);
 var
   Item: TBindItem<T>;
 begin
   for Item in FList do
-    Item.NotifyControlValue(Value);
+    if (ASource = nil) or (ASource <> Item.Component) then
+      Item.NotifyControlValue(Value);
 end;
 
 end.

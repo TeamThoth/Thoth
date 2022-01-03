@@ -27,6 +27,9 @@ type
     [TearDown]  procedure TearDown;
 
     [Test]
+    procedure TestConfigName;
+
+    [Test]
     procedure TestInitIniConfig;  // 초기 값 지정 확인
 
     [Test]
@@ -79,6 +82,11 @@ end;
 procedure TThothConfigTest.TearDownFixture;
 begin
   FConnection.Free;
+end;
+
+procedure TThothConfigTest.TestConfigName;
+begin
+
 end;
 
 procedure TThothConfigTest.TestInitIniConfig;

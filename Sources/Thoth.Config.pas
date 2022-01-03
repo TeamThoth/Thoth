@@ -36,6 +36,7 @@ type
 implementation
 
 uses
+  System.Rtti,
   System.SysUtils,
   Thoth.ResourceStrings,
   Thoth.Utils
@@ -104,10 +105,13 @@ end;
 
 function TThothConfig.GetConfigName: string;
 var
+  LCtx: TRttiContext;
   LAttr: ConfigNameAttribute;
 begin
   if FConfigName = '' then
   begin
+    TRttiContext.Create; // Vcl Form Application에서는 Context를 생성하지
+                         // 않으면 아래 LAttr의 값이 설정되지 않음
     LAttr := TAttributeUtil.FindAttribute<ConfigNameAttribute>(Self);
     if Assigned(LAttr) then
       FConfigName := LAttr.ConfigName;
