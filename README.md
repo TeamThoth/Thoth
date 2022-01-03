@@ -9,7 +9,7 @@
 * **Thoth.Bind.ObservableField** - 관찰가능한 데이터 객체(Observable data object) 제공, 컴포넌트 바인딩(BindComponent) 및 Observe 함수 등록 가능, MVVM 구현 시 ViewModel의 데이터로 활용 가능
 
 ## 설치(Installation)
-1. 이 저장소를 클론(Clone this repository)
+1. 이 저장소 클론(Clone this repository)
 ```
 git clone https://github.com/TeamThoth/Thoth.git
 ```
