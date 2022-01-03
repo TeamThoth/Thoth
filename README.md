@@ -4,11 +4,11 @@
 이 라이브러리를 그대로 사용하지 말고, 여러분의 프로젝트에 맞게 수정해 사용하기 바란다.
 기능 개선과 기능 추가에 대한 의견을 환영한다.
 
-# 주요 기능(Main features)
+## 주요 기능(Main features)
 * Thoth.Config - 환경변수 읽기/쓰기 자동화 객체(Attribute 이용), Thoth.Config.Loader 클래스를 상속해 원하는 자료로 저장(현재 IniFile, SQL Loader 지원)
 * Thoth.Bind.ObservableField - 관찰가능한 데이터 객체(Observable data object) 제공, 컴포넌트 바인딩(BindComponent) 및 Observe 함수 등록 가능, MVVM 구현 시 ViewModel의 데이터로 활용 가능
 
-# 설치(Installation)
+## 설치(Installation)
 1. 이 저장소를 클론(Clone this repository)
 ```
 git clone https://github.com/TeamThoth/Thoth.git
