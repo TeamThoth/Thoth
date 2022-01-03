@@ -54,10 +54,10 @@ type
 ```
 ### 옵저버블 변수 활용
 ```
-  // data and component binding
+  // Binding data and component
   dmViewModel.Limit.BindComponent(TrackBar1, 'Position'); // readonly(control <- data)
   dmViewModel.Limit.BindComponent(Edit1, 'Text'); // read-write(control <-> data)
-  // manual update value
+  // Manually update value
   dmViewModel.Limit.Value := 30;
   // Register observe proc
   dmViewModel.Limit.Observe(Self, procedure
