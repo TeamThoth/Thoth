@@ -54,7 +54,6 @@ end;
 procedure TThothUtilsTest.TestAttrFindAttributeInThothConfig;
 var
   Env: TEnv;
-  LAttr: ConfigNameAttribute;
 begin
   Env := TEnv.Create(TIniFileConfigLoader.Create as IConfigLoader);
 

@@ -60,7 +60,6 @@ begin
   StrField := TObservableField<string>.Create;
 
   IntField.BindComponent(FForm.Edit1, 'Width');
-  IntField.BindComponent(FForm.Edit1, 'Width');
   IntField.Value := 100;
   Assert.AreEqual(FForm.Edit1.Width, 100);
 
@@ -127,9 +126,9 @@ begin
 
   Field.Value := 100;
   Field.Observe(Self,
-    procedure
+    procedure(Value: Integer)
     begin
-      Assert.AreEqual(Field.Value, 200);
+      Assert.AreEqual(Value, 200);
       WasCalled := True;
     end);
 
@@ -153,12 +152,12 @@ begin
 
   Field.Value := 100;
   Field.Observe(Self,
-    procedure
+    procedure(Value: Integer)
     begin
       Inc(CallCount);
     end);
   Field.Observe(Self,
-    procedure
+    procedure(Value: Integer)
     begin
       Inc(CallCount);
     end);

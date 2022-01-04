@@ -9,20 +9,20 @@ uses
 type
   TUpdateControlEvent<T> = procedure(const Value: T) of object;
 
-  IObservableField = interface
+  IObservableField<T> = interface
   ['{81695AA3-9A63-4CC2-A406-619AACD4368A}']
     procedure BindComponent(AComponent: TComponent; AProperty: string);
     procedure RemoveBindComponent(AComponent: TComponent; AProperty: string = '');
 
-    procedure Observe(AObject: TObject; ACallback: TProc);
+    procedure Observe(AObject: TObject; ACallback: TProc<T>);
     procedure RemoveObserve(AObject: TObject);
   end;
 
   { TODO : 쓰래드에서 적용 가능하도록 처리 필요 }
-  TObservableField<T> = class(TInterfacedObject, IObservableField)
+  TObservableField<T> = class(TInterfacedObject, IObservableField<T>)
   private
-    FBindList: TBindList<T>;
-    FObserveList: TObserveList<T>;
+    FBindings: TBindingList<T>;
+    FObservings: TObservingList<T>;
 
     FValue: T;
     function GetValue: T;
@@ -39,10 +39,10 @@ type
     procedure BindComponent(AComponent: TComponent; AProperty: string);
     procedure RemoveBindComponent(AComponent: TComponent; AProperty: string = '');
 
-    procedure Observe(AObject: TObject; ACallback: TProc);
+    procedure Observe(AObject: TObject; ACallback: TProc<T>);
     procedure RemoveObserve(AObject: TObject);
 
-    procedure Notify;
+    procedure Notify(ASource: TComponent = nil);
   end;
 
   { TODO : ObservableList }
@@ -58,16 +58,16 @@ uses
 
 constructor TObservableField<T>.Create;
 begin
-  FBindList := TBindList<T>.Create;
-  FBindList.OnControlValueChanged := ControlValueChanged;
+  FBindings := TBindingList<T>.Create;
+  FBindings.OnControlValueChanged := ControlValueChanged;
 
-  FObserveList := TObserveList<T>.Create;
+  FObservings := TObservingList<T>.Create;
 end;
 
 destructor TObservableField<T>.Destroy;
 begin
-  FBindList.Free;
-  FObserveList.Free;
+  FBindings.Free;
+  FObservings.Free;
 
   inherited;
 end;
@@ -77,9 +77,9 @@ begin
   Result := FValue;
 end;
 
-procedure TObservableField<T>.Notify;
+procedure TObservableField<T>.Notify(ASource: TComponent);
 begin
-  ValueChanged(nil, FValue);
+  ValueChanged(ASource, FValue);
 end;
 
 procedure TObservableField<T>.SetValue(const Value: T);
@@ -103,25 +103,25 @@ end;
 
 procedure TObservableField<T>.ValueChanged(const ASource: TComponent; const Value: T);
 begin
-  FBindList.NotifyControls(ASource, Value);
-  FObserveList.Notify(Value);
+  FBindings.NotifyAll(ASource, Value);
+  FObservings.NotifyAll(Value);
 end;
 
 procedure TObservableField<T>.BindComponent(AComponent: TComponent;
   AProperty: string);
 begin
-  FBindList.Add(AComponent, AProperty);
+  FBindings.Add(AComponent, AProperty);
 end;
 
 procedure TObservableField<T>.RemoveBindComponent(AComponent: TComponent;
   AProperty: string);
 begin
-  FBindList.Remove(AComponent, AProperty);
+  FBindings.Remove(AComponent, AProperty);
 end;
 
-procedure TObservableField<T>.Observe(AObject: TObject; ACallback: TProc);
+procedure TObservableField<T>.Observe(AObject: TObject; ACallback: TProc<T>);
 begin
-  FObserveList.Add(AObject, ACallback);
+  FObservings.Add(AObject, ACallback);
 end;
 
 procedure TObservableField<T>.RemoveObserve(AObject: TObject);

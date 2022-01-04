@@ -6,54 +6,54 @@ uses
   System.SysUtils, System.Generics.Collections, System.Generics.Defaults;
 
 type
-  TObserveItem = class
+  TObserveItem<T> = class
   private
-    FCallback: TProc;
+    FCallback: TProc<T>;
     FInstance: TObject;
   public
-    constructor Create(AObject: TObject; ACallback: TProc);
+    constructor Create(AObject: TObject; ACallback: TProc<T>);
 
     property Instance: TObject read FInstance;
-    property Callback: TProc read FCallback;
+    property Callback: TProc<T> read FCallback;
 
-    procedure Notify;
+    procedure Notify(const Value: T);
   end;
-  TObserveList<T> = class
+  TObservingList<T> = class
   type
-    TObserveItemCompare = class(TComparer<TObserveItem>)
+    TObserveItemCompare = class(TComparer<TObserveItem<T>>)
     public
-      function Compare(const Left, Right: TObserveItem): Integer; override;
+      function Compare(const Left, Right: TObserveItem<T>): Integer; override;
     end;
   private
-    FObserves: TObjectList<TObserveItem>;
+    FList: TObjectList<TObserveItem<T>>;
   public
     constructor Create;
     destructor Destroy; override;
 
-    procedure Add(AObject: TObject; ACallback: TProc);
+    procedure Add(AObject: TObject; ACallback: TProc<T>);
 
-    procedure Notify(const Value: T);
+    procedure NotifyAll(const Value: T);
   end;
 
 implementation
 
 { TObserveItem }
 
-constructor TObserveItem.Create(AObject: TObject; ACallback: TProc);
+constructor TObserveItem<T>.Create(AObject: TObject; ACallback: TProc<T>);
 begin
   FInstance := AObject;
   FCallback := ACallback;
 end;
 
-procedure TObserveItem.Notify;
+procedure TObserveItem<T>.Notify(const Value: T);
 begin
-  FCallback();
+  FCallback(Value);
 end;
 
 { TObserveList<T>.TObserveItemCompare }
 
-function TObserveList<T>.TObserveItemCompare.Compare(const Left,
-  Right: TObserveItem): Integer;
+function TObservingList<T>.TObserveItemCompare.Compare(const Left,
+  Right: TObserveItem<T>): Integer;
 begin
   Result := -1;
   if (Left.Instance = Right.Instance) and (Left.Callback = Right.Callback) then
@@ -64,38 +64,38 @@ end;
 
 { TObserveList<T> }
 
-constructor TObserveList<T>.Create;
+constructor TObservingList<T>.Create;
 begin
-  FObserves := TObjectList<TObserveItem>.Create(TObserveItemCompare.Create, True);
+  FList := TObjectList<TObserveItem<T>>.Create(TObserveItemCompare.Create, True);
 end;
 
-destructor TObserveList<T>.Destroy;
+destructor TObservingList<T>.Destroy;
 begin
-  FObserves.Free;
+  FList.Free;
 
   inherited;
 end;
 
-procedure TObserveList<T>.Add(AObject: TObject; ACallback: TProc);
+procedure TObservingList<T>.Add(AObject: TObject; ACallback: TProc<T>);
 var
-  Item: TObserveItem;
+  Item: TObserveItem<T>;
 begin
-  Item := TObserveItem.Create(AObject, ACallback);
-  if FObserves.Contains(Item) then
+  Item := TObserveItem<T>.Create(AObject, ACallback);
+  if FList.Contains(Item) then
   begin
     Item.Free;
     Exit;
   end;
 
-  FObserves.Add(Item);
+  FList.Add(Item);
 end;
 
-procedure TObserveList<T>.Notify(const Value: T);
+procedure TObservingList<T>.NotifyAll(const Value: T);
 var
-  Item: TObserveItem;
+  Item: TObserveItem<T>;
 begin
-  for Item in FObserves do
-    Item.Notify;
+  for Item in FList do
+    Item.Notify(Value);
 end;
 
 end.

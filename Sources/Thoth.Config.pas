@@ -105,7 +105,6 @@ end;
 
 function TThothConfig.GetConfigName: string;
 var
-  LCtx: TRttiContext;
   LAttr: ConfigNameAttribute;
 begin
   if FConfigName = '' then
