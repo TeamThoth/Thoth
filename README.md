@@ -18,7 +18,7 @@ git clone https://github.com/TeamThoth/Thoth.git
 # 샘플(Samples)
 ## Thoth.Config
 ### 환경변수 클래스 정의(Attribute 이용)
-```
+```pascal
 type
   [ConfigName('Env')]
   TEnv = class(TThothConfig)
@@ -33,7 +33,7 @@ type
   end;
 ```
 ### 환경변수 객체 사용
-```
+```pascal
   // read(using TIniFileConfigLoader)
   FEnv := TEnv.Create(TIniFileConfigLoader.Create as IConfigLoader);
   edtIpAddr.Text := FEnv.IpAddr;
@@ -46,14 +46,14 @@ type
 
 ## TObservableField<T>
 ### 옵저버블 변수 정의(Observable variable define)
-```
+```pascal
   private
     FLimit: TObservableField<Integer>;
   public
     property Limit: TObservableField<Integer> read FLimit write FLimit;
 ```
 ### 옵저버블 변수 활용
-```
+```pascal
   // Binding data and component
   dmViewModel.Limit.BindComponent(TrackBar1, 'Position'); // readonly(control <- data)
   dmViewModel.Limit.BindComponent(Edit1, 'Text'); // read-write(control <-> data)
