@@ -3,7 +3,7 @@ unit Thoth.Bind.ObservableField;
 interface
 
 uses
-  Thoth.Bind.Bindings, Thoth.Bind.Observes,
+  Thoth.Bind.Types, Thoth.Bind.Bindings, Thoth.Bind.Observes,
   System.Classes, System.SysUtils, System.Generics.Collections;
 
 type
@@ -11,7 +11,7 @@ type
 
   IObservableField<T> = interface
   ['{81695AA3-9A63-4CC2-A406-619AACD4368A}']
-    procedure BindComponent(AComponent: TComponent; AProperty: string);
+    procedure BindComponent(AComponent: TComponent; AProperty: string; ASupportBindEventTypes: TBindEventTypes);
     procedure RemoveBindComponent(AComponent: TComponent; AProperty: string = '');
 
     procedure Observe(AObject: TObject; ACallback: TProc<T>);
@@ -36,8 +36,8 @@ type
 
     property Value: T read GetValue write SetValue;
 
-    { TODO : Update / Modify 두종류의 이벤트 지원여부(옵션) 설정 }
-    procedure BindComponent(AComponent: TComponent; AProperty: string);
+    procedure BindComponent(AComponent: TComponent; AProperty: string;
+      ASupportBindEventTypes: TBindEventTypes = [betUpdate]);
     procedure RemoveBindComponent(AComponent: TComponent; AProperty: string = '');
 
     procedure Observe(AObject: TObject; ACallback: TProc<T>);
@@ -97,8 +97,15 @@ begin
 end;
 
 procedure TObservableField<T>.ControlValueChanged(const ASource: TComponent; const Value: T);
+var
+  Comparer: IEqualityComparer<T>;
 begin
+  Comparer := TEqualityComparer<T>.Default;
+  if Comparer.Equals(FValue, Value) then
+    Exit;
+
   FValue := Value;
+
   ValueChanged(ASource, Value);
 end;
 
@@ -109,9 +116,9 @@ begin
 end;
 
 procedure TObservableField<T>.BindComponent(AComponent: TComponent;
-  AProperty: string);
+  AProperty: string; ASupportBindEventTypes: TBindEventTypes);
 begin
-  FBindings.Add(AComponent, AProperty);
+  FBindings.Add(AComponent, AProperty, ASupportBindEventTypes);
 end;
 
 procedure TObservableField<T>.RemoveBindComponent(AComponent: TComponent;

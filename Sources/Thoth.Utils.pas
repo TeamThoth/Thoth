@@ -37,7 +37,8 @@ type
   end;
 
   TValueHelper = record helper for TValue
-    function TryConvert(ATypeInfo: PTypeInfo; out AOut: TValue): Boolean;
+    function TryConvert(ASourceTypeInfo: PTypeInfo; out ADestOut: TValue): Boolean; overload;
+    function TryConvert<T>(out ADestOut: TValue): Boolean; overload;
   end;
 
 implementation
@@ -256,37 +257,40 @@ end;
 
 { TValueHelper }
 
-function TValueHelper.TryConvert(ATypeInfo: PTypeInfo; out AOut: TValue): Boolean;
+function TValueHelper.TryConvert(ASourceTypeInfo: PTypeInfo; out ADestOut: TValue): Boolean;
 begin
-  AOut := TValue.Empty;
+  ADestOut := TValue.Empty;
   case TypeInfo.Kind of
   // Integer > string
   tkInteger, tkInt64, tkEnumeration:
-    case ATypeInfo.Kind of
+    case ASourceTypeInfo.Kind of
     tkString, tkLString, tkWString, tkUString:
-      AOut := TValue.From<string>(IntToStr(AsInteger));
+      ADestOut := TValue.From<string>(IntToStr(AsInteger));
     end;
   tkString, tkLString, tkWString, tkUString:
-    case ATypeInfo.Kind of
+    case ASourceTypeInfo.Kind of
     tkInteger, tkInt64, tkEnumeration:
-      begin
-        AOut := TValue.FromOrdinal(ATypeInfo, StrToIntDef(AsString, 0));
-      end;
+      ADestOut := TValue.FromOrdinal(ASourceTypeInfo, StrToIntDef(AsString, 0));
     tkFloat:
-      AOut := TVAlue.From<Extended>(StrToFloatDef(AsString, 0));
+      ADestOut := TValue.From<Extended>(StrToFloatDef(AsString, 0));
     end;
 
   tkFloat:
-    case ATypeInfo.Kind of
+    case ASourceTypeInfo.Kind of
     tkString, tkLString, tkWString, tkUString:
-      AOut := TValue.From<string>(FloatToStr(AsExtended));
+      ADestOut := TValue.From<string>(FloatToStr(AsExtended));
     end;
   end;
 
-  if AOut.IsEmpty and TryCast(ATypeInfo, AOut) then
+  if ADestOut.IsEmpty and TryCast(ASourceTypeInfo, ADestOut) then
     Exit(True);
 
-  Result := not AOut.IsEmpty;
+  Result := not ADestOut.IsEmpty;
+end;
+
+function TValueHelper.TryConvert<T>(out ADestOut: TValue): Boolean;
+begin
+  Result := TryConvert(System.TypeInfo(T), ADestOut);
 end;
 
 end.

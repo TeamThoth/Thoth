@@ -9,10 +9,15 @@ uses
 
 type
   TTrackBar = class(Vcl.Comctrls.TTrackBar)
+  private
+    FOldPosition: Integer;
   protected
     function CanObserve(const ID: Integer): Boolean; override;
+    // ControlValueModified
     procedure Changed; override;
-    procedure CMExit(var Message: TCMExit); message CM_EXIT;
+    // ControlValueUpdate
+    procedure MouseUp(Button: TMouseButton; Shift: TShiftState;
+      X, Y: Integer); override;
   end;
 
   TForm2 = class(TForm)
@@ -34,6 +39,9 @@ var
 
 implementation
 
+uses
+  Thoth.Bind.Types;
+
 {$R *.dfm}
 
 { TTrackBar }
@@ -50,14 +58,18 @@ procedure TTrackBar.Changed;
 begin
   inherited;
 
+  TLinkObservers.ControlValueModified(Observers);
+end;
+
+procedure TTrackBar.MouseUp(Button: TMouseButton; Shift: TShiftState; X,
+  Y: Integer);
+begin
+  inherited;
+
   TLinkObservers.ControlValueUpdate(Observers);
 end;
 
-procedure TTrackBar.CMExit(var Message: TCMExit);
-begin
-  TLinkObservers.ControlValueUpdate(Observers);
-  inherited;
-end;
+{ TForm2 }
 
 procedure TForm2.Button1Click(Sender: TObject);
 begin
@@ -67,13 +79,13 @@ end;
 procedure TForm2.FormCreate(Sender: TObject);
 begin
   Memo1.Lines.Clear;
-  if not TrackBar1.Observers.CanObserve(TObserverMapping.ControlValueID) then
-    Memo1.Lines.Add('TrackBar1 is not support controlvalue observe');
-  if not Edit1.Observers.CanObserve(TObserverMapping.ControlValueID) then
-    Memo1.Lines.Add('Edit1 is not support controlvalue observe');
+//  if not TrackBar1.Observers.CanObserve(TObserverMapping.ControlValueID) then
+//    Memo1.Lines.Add('TrackBar1 is not support controlvalue observe');
+//  if not Edit1.Observers.CanObserve(TObserverMapping.ControlValueID) then
+//    Memo1.Lines.Add('Edit1 is not support controlvalue observe');
 
-  dmViewModel.Limit.BindComponent(TrackBar1, 'Position'); // readonly(control <- data)
-  dmViewModel.Limit.BindComponent(Edit1, 'Text'); // read-write(control <-> data)
+  dmViewModel.Limit.BindComponent(TrackBar1,  'Position', [betUpdate, betModified]);
+  dmViewModel.Limit.BindComponent(Edit1,      'Text');
 
   dmViewModel.Limit.Observe(Self, procedure(Value: Integer)
     begin

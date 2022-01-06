@@ -32,7 +32,8 @@ uses
   TestObservableFieldForm in 'TestObservableFieldForm.pas' {frmObsFld},
   Thoth.Bind.Bindings in '..\Sources\Thoth.Bind.Bindings.pas',
   Thoth.Bind.Observes in '..\Sources\Thoth.Bind.Observes.pas',
-  TestsThothUtils in 'TestsThothUtils.pas';
+  TestsThothUtils in 'TestsThothUtils.pas',
+  Thoth.Bind.Types in '..\Sources\Thoth.Bind.Types.pas';
 
 {$IFNDEF TESTINSIGHT}
 var

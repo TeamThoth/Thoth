@@ -3,7 +3,7 @@ unit Thoth.Bind.Bindings;
 interface
 
 uses
-  Thoth.Classes,
+  Thoth.Classes, Thoth.Bind.Types,
   System.Rtti, System.TypInfo, System.Classes, System.SysUtils,
   System.Generics.Collections, System.Generics.Defaults;
 
@@ -14,12 +14,14 @@ type
   private
     FComponent: TComponent;
     FProperty: string;
+    FSupportBindEventTypes: TBindEventTypes;
 
     FCompPropTypeInfo: PTypeInfo;
 
+    FOnControlValueChanged: TUpdateControlEvent<T>;
+
     { IObserver }
     FOnToggle: TObserverToggleEvent;
-    FOnControlValueChanged: TUpdateControlEvent<T>;
     function GetActive: Boolean;
     procedure SetActive(Value: Boolean);
     function GetOnObserverToggle: TObserverToggleEvent;
@@ -33,9 +35,9 @@ type
 
     procedure SetControlValue(const Value: TValue);
 
-    procedure DoControlValueChanged(const ASource: TComponent; const Value: T);
+    procedure DoControlValueChanged;
   public
-    constructor Create(AComponent: TComponent; AProperty: string);
+    constructor Create(AComponent: TComponent; AProperty: string; ASupportBindEventTypes: TBindEventTypes);
     destructor Destroy; override;
 
     property Component: TComponent read FComponent;
@@ -59,7 +61,7 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure Add(AComponent: TComponent; AProperty: string);
+    procedure Add(AComponent: TComponent; AProperty: string; ASupportBindEventTypes: TBindEventTypes);
     procedure Remove(AComponent: TComponent; AProperty: string);
 
     procedure NotifyAll(const ASource: TComponent; const Value: T);
@@ -73,18 +75,19 @@ implementation
 uses
   Thoth.Utils, Thoth.ResourceStrings;
 
-{ TBindItem<T> }
+{ TBindingItem<T> }
 
-constructor TBindingItem<T>.Create(AComponent: TComponent; AProperty: string);
+constructor TBindingItem<T>.Create(AComponent: TComponent; AProperty: string; ASupportBindEventTypes: TBindEventTypes);
 var
   LProp: TRttiProperty;
 begin
   FComponent := AComponent;
   FProperty := AProperty;
+  FSupportBindEventTypes := ASupportBindEventTypes;
 
   LProp := TRttiContext.Create.GetType(FComponent.ClassType).GetProperty(FProperty);
   if not Assigned(LProp) then
-    raise Exception.CreateFmt(SNotFoundProperty, [ClassName, AComponent.Name, AProperty]);
+    raise Exception.CreateFmt(SNotFoundProperty, [AComponent.Name, AProperty]);
 
   FCompPropTypeInfo := LProp.PropertyType.Handle;
 
@@ -139,11 +142,19 @@ begin
   LProp.SetValue(FComponent, LConvertedValue);
 end;
 
-procedure TBindingItem<T>.DoControlValueChanged(const ASource: TComponent;
-  const Value: T);
+procedure TBindingItem<T>.DoControlValueChanged;
+var
+  LProp: TRttiProperty;
+  LValue, Converted: TValue;
 begin
+  LProp := TRttiContext.Create.GetType(FComponent.ClassType).GetProperty(FProperty);
+  LValue := LProp.GetValue(FComponent);
+
+  if not LValue.TryConvert<T>(Converted) then
+    Exit;
+
   if Assigned(FOnControlValueChanged) then
-    FOnControlValueChanged(ASource, Value);
+    FOnControlValueChanged(FComponent, Converted.AsType<T>);
 end;
 
 procedure TBindingItem<T>.NotifyControlValue(const Value: T);
@@ -156,29 +167,23 @@ begin
 end;
 
 procedure TBindingItem<T>.ValueUpdate;
-var
-  LProp: TRttiProperty;
-  LValue, Converted: TValue;
 begin
-  LProp := TRttiContext.Create.GetType(FComponent.ClassType).GetProperty(FProperty);
-  LValue := LProp.GetValue(FComponent);
-
-  if not LValue.TryConvert(TypeInfo(T), Converted) then
+  if not (betUpdate in FSupportBindEventTypes) then
     Exit;
 
-  DoControlValueChanged(FComponent, Converted.AsType<T>);
+
+  DoControlValueChanged;
 end;
 
 procedure TBindingItem<T>.ValueModified;
-var
-  LValue, Converted: TValue;
-  Value: T;
 begin
-//  LValue := FProperty.GetValue(FComponent);
+  if not (betModified in FSupportBindEventTypes) then
+    Exit;
 
+  DoControlValueChanged;
 end;
 
-{ TBindList<T>.TBindListCompare }
+{ TBindingList<T>.TBindListCompare }
 
 function TBindingList<T>.TBindItemCompare.Compare(const Left, Right: TBindingItem<T>): Integer;
 begin
@@ -193,7 +198,7 @@ begin
   end;
 end;
 
-{ TBindList<T> }
+{ TBindingList<T> }
 
 constructor TBindingList<T>.Create;
 begin
@@ -207,13 +212,13 @@ begin
   inherited;
 end;
 
-procedure TBindingList<T>.Add(AComponent: TComponent; AProperty: string);
+procedure TBindingList<T>.Add(AComponent: TComponent; AProperty: string; ASupportBindEventTypes: TBindEventTypes);
 var
   Item: TBindingItem<T>;
 begin
-  // Duplicate
-  Item := TBindingItem<T>.Create(AComponent, AProperty);
+  Item := TBindingItem<T>.Create(AComponent, AProperty, ASupportBindEventTypes);
   Item.OnControlValueChanged := DoControlValueChanged;
+  // Duplicate
   if FList.Contains(Item) then
   begin
     Item.Free;

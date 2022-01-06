@@ -16,16 +16,19 @@ type
     [TearDown]  procedure TearDown;
 
     [Test]
-    procedure TestSetValue;
+    procedure TestBindSetValue;
 
     [Test]
-    procedure TestIntAndStrSetValue;
+    procedure TestBindIntAndStrSetValue;
 
     [Test]
-    procedure TestChangeControl;
+    procedure TestBindChangeControl;
 
     [Test]
-    procedure TestEnumChangeControl;
+    procedure TestBindEnumChangeControl;
+
+    [Test]
+    procedure TestBindInvalidProperty;
 
     [Test]
     procedure TestObserve;
@@ -51,7 +54,7 @@ begin
   FForm.Free;
 end;
 
-procedure TThothObservableFieldTest.TestSetValue;
+procedure TThothObservableFieldTest.TestBindSetValue;
 var
   IntField: TObservableField<Integer>;
   StrField: TObservableField<string>;
@@ -71,7 +74,7 @@ begin
   StrField.Free;
 end;
 
-procedure TThothObservableFieldTest.TestIntAndStrSetValue;
+procedure TThothObservableFieldTest.TestBindIntAndStrSetValue;
 var
   Field: TObservableField<Integer>;
 begin
@@ -84,7 +87,7 @@ begin
   Field.Free;
 end;
 
-procedure TThothObservableFieldTest.TestChangeControl;
+procedure TThothObservableFieldTest.TestBindChangeControl;
 var
   Field: TObservableField<Integer>;
 begin
@@ -101,7 +104,7 @@ begin
   Field.Free;
 end;
 
-procedure TThothObservableFieldTest.TestEnumChangeControl;
+procedure TThothObservableFieldTest.TestBindEnumChangeControl;
 var
   Field: TObservableField<TAlign>;
 begin
@@ -113,6 +116,19 @@ begin
 
   Field.Value := alRight;
   Assert.AreEqual(FForm.pnlChild.Align, alRight);
+end;
+
+procedure TThothObservableFieldTest.TestBindInvalidProperty;
+var
+  Field: TObservableField<Integer>;
+begin
+  Field := TObservableField<Integer>.Create;
+
+  Field.BindComponent(FForm.Edit1, 'abcd');
+  Field.Value := 100;
+  Assert.AreEqual(FForm.Edit1.Text, '100');
+
+  Field.Free;
 end;
 
 procedure TThothObservableFieldTest.TestObserve;

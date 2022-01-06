@@ -9,7 +9,8 @@ uses
   Thoth.Bind.Observes in '..\..\Sources\Thoth.Bind.Observes.pas',
   Thoth.Classes in '..\..\Sources\Thoth.Classes.pas',
   Thoth.ResourceStrings in '..\..\Sources\Thoth.ResourceStrings.pas',
-  Thoth.Utils in '..\..\Sources\Thoth.Utils.pas';
+  Thoth.Utils in '..\..\Sources\Thoth.Utils.pas',
+  Thoth.Bind.Types in '..\..\Sources\Thoth.Bind.Types.pas';
 
 {$R *.res}
 
