@@ -20,7 +20,6 @@ object Form2: TForm2
     Height = 45
     Max = 100
     TabOrder = 0
-    OnChange = TrackBar1Change
   end
   object Edit1: TEdit
     Left = 80

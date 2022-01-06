@@ -10,7 +10,7 @@ uses
 type
   TUpdateControlEvent<T> = procedure(const ASource: TComponent; const Value: T) of object;
 
-  TBindingsItem<T> = class(TNoRefCountObject, IObserver, IMultiCastObserver, IControlValueObserver)
+  TBindingItem<T> = class(TNoRefCountObject, IObserver, IMultiCastObserver, IControlValueObserver)
   private
     FComponent: TComponent;
     FProperty: string;
@@ -46,12 +46,12 @@ type
 
   TBindingList<T> = class(TNoRefCountObject)
   type
-    TBindItemCompare = class(TComparer<TBindingsItem<T>>)
+    TBindItemCompare = class(TComparer<TBindingItem<T>>)
     public
-      function Compare(const Left, Right: TBindingsItem<T>): Integer; override;
+      function Compare(const Left, Right: TBindingItem<T>): Integer; override;
     end;
   private
-    FList: TObjectList<TBindingsItem<T>>;
+    FList: TObjectList<TBindingItem<T>>;
     FOnControlValueChanged: TUpdateControlEvent<T>;
 
     procedure DoControlValueChanged(const ASource: TComponent; const Value: T);
@@ -75,7 +75,7 @@ uses
 
 { TBindItem<T> }
 
-constructor TBindingsItem<T>.Create(AComponent: TComponent; AProperty: string);
+constructor TBindingItem<T>.Create(AComponent: TComponent; AProperty: string);
 var
   LProp: TRttiProperty;
 begin
@@ -93,7 +93,7 @@ begin
   FComponent.Observers.AddObserver(TObserverMapping.ControlValueID, Self);
 end;
 
-destructor TBindingsItem<T>.Destroy;
+destructor TBindingItem<T>.Destroy;
 begin
   if not FComponent.Observers.CanObserve(TObserverMapping.ControlValueID) then
     Exit;
@@ -102,32 +102,32 @@ begin
   inherited;
 end;
 
-function TBindingsItem<T>.GetActive: Boolean;
+function TBindingItem<T>.GetActive: Boolean;
 begin
   Result := True;
 end;
 
-procedure TBindingsItem<T>.SetActive(Value: Boolean);
+procedure TBindingItem<T>.SetActive(Value: Boolean);
 begin
   if Assigned(FOnToggle) then
     FOnToggle(Self, Value);
 end;
 
-function TBindingsItem<T>.GetOnObserverToggle: TObserverToggleEvent;
+function TBindingItem<T>.GetOnObserverToggle: TObserverToggleEvent;
 begin
   Result := FOnToggle;
 end;
 
-procedure TBindingsItem<T>.SetOnObserverToggle(AEvent: TObserverToggleEvent);
+procedure TBindingItem<T>.SetOnObserverToggle(AEvent: TObserverToggleEvent);
 begin
   FOnToggle := AEvent;
 end;
 
-procedure TBindingsItem<T>.Removed;
+procedure TBindingItem<T>.Removed;
 begin
 end;
 
-procedure TBindingsItem<T>.SetControlValue(const Value: TValue);
+procedure TBindingItem<T>.SetControlValue(const Value: TValue);
 var
   LProp: TRttiProperty;
   LConvertedValue: TValue;
@@ -139,14 +139,14 @@ begin
   LProp.SetValue(FComponent, LConvertedValue);
 end;
 
-procedure TBindingsItem<T>.DoControlValueChanged(const ASource: TComponent;
+procedure TBindingItem<T>.DoControlValueChanged(const ASource: TComponent;
   const Value: T);
 begin
   if Assigned(FOnControlValueChanged) then
     FOnControlValueChanged(ASource, Value);
 end;
 
-procedure TBindingsItem<T>.NotifyControlValue(const Value: T);
+procedure TBindingItem<T>.NotifyControlValue(const Value: T);
 var
   LValue: TValue;
 begin
@@ -155,7 +155,7 @@ begin
   SetControlValue(LValue);
 end;
 
-procedure TBindingsItem<T>.ValueUpdate;
+procedure TBindingItem<T>.ValueUpdate;
 var
   LProp: TRttiProperty;
   LValue, Converted: TValue;
@@ -169,7 +169,7 @@ begin
   DoControlValueChanged(FComponent, Converted.AsType<T>);
 end;
 
-procedure TBindingsItem<T>.ValueModified;
+procedure TBindingItem<T>.ValueModified;
 var
   LValue, Converted: TValue;
   Value: T;
@@ -180,7 +180,7 @@ end;
 
 { TBindList<T>.TBindListCompare }
 
-function TBindingList<T>.TBindItemCompare.Compare(const Left, Right: TBindingsItem<T>): Integer;
+function TBindingList<T>.TBindItemCompare.Compare(const Left, Right: TBindingItem<T>): Integer;
 begin
   Result := -1;
   if (Left.Component = Right.Component) and (Left.&Property = Right.&Property) then
@@ -197,7 +197,7 @@ end;
 
 constructor TBindingList<T>.Create;
 begin
-  FList := TObjectList<TBindingsItem<T>>.Create(TBindItemCompare.Create, True);
+  FList := TObjectList<TBindingItem<T>>.Create(TBindItemCompare.Create, True);
 end;
 
 destructor TBindingList<T>.Destroy;
@@ -209,10 +209,10 @@ end;
 
 procedure TBindingList<T>.Add(AComponent: TComponent; AProperty: string);
 var
-  Item: TBindingsItem<T>;
+  Item: TBindingItem<T>;
 begin
   // Duplicate
-  Item := TBindingsItem<T>.Create(AComponent, AProperty);
+  Item := TBindingItem<T>.Create(AComponent, AProperty);
   Item.OnControlValueChanged := DoControlValueChanged;
   if FList.Contains(Item) then
   begin
@@ -226,7 +226,7 @@ end;
 procedure TBindingList<T>.Remove(AComponent: TComponent; AProperty: string);
 var
   I: Integer;
-  Item: TBindingsItem<T>;
+  Item: TBindingItem<T>;
 begin
   for I := 0 to FList.Count - 1 do
   begin
@@ -247,7 +247,7 @@ end;
 
 procedure TBindingList<T>.NotifyAll(const ASource: TComponent; const Value: T);
 var
-  Item: TBindingsItem<T>;
+  Item: TBindingItem<T>;
 begin
   for Item in FList do
     if ASource = Item.Component then

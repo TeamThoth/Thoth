@@ -8,6 +8,13 @@ uses
   ObservableFieldModule;
 
 type
+  TTrackBar = class(Vcl.Comctrls.TTrackBar)
+  protected
+    function CanObserve(const ID: Integer): Boolean; override;
+    procedure Changed; override;
+    procedure CMExit(var Message: TCMExit); message CM_EXIT;
+  end;
+
   TForm2 = class(TForm)
     TrackBar1: TTrackBar;
     Edit1: TEdit;
@@ -29,6 +36,29 @@ implementation
 
 {$R *.dfm}
 
+{ TTrackBar }
+
+function TTrackBar.CanObserve(const ID: Integer): Boolean;
+begin
+  if ID = TObserverMapping.ControlValueID then
+    Result := True
+  else
+    Result := False;
+end;
+
+procedure TTrackBar.Changed;
+begin
+  inherited;
+
+  TLinkObservers.ControlValueUpdate(Observers);
+end;
+
+procedure TTrackBar.CMExit(var Message: TCMExit);
+begin
+  TLinkObservers.ControlValueUpdate(Observers);
+  inherited;
+end;
+
 procedure TForm2.Button1Click(Sender: TObject);
 begin
   dmViewModel.Limit.Value := 30;
@@ -45,9 +75,9 @@ begin
   dmViewModel.Limit.BindComponent(TrackBar1, 'Position'); // readonly(control <- data)
   dmViewModel.Limit.BindComponent(Edit1, 'Text'); // read-write(control <-> data)
 
-  dmViewModel.Limit.Observe(Self, procedure
+  dmViewModel.Limit.Observe(Self, procedure(Value: Integer)
     begin
-      Memo1.Lines.Add(dmViewModel.Limit.Value.ToString);
+      Memo1.Lines.Add(Value.ToString);
     end);
 end;
 

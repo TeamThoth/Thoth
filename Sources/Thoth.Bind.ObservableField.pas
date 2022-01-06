@@ -36,6 +36,7 @@ type
 
     property Value: T read GetValue write SetValue;
 
+    { TODO : Update / Modify 두종류의 이벤트 지원여부(옵션) 설정 }
     procedure BindComponent(AComponent: TComponent; AProperty: string);
     procedure RemoveBindComponent(AComponent: TComponent; AProperty: string = '');
 
