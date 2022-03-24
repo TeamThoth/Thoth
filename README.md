@@ -1,8 +1,9 @@
 # Thoth libarary for Delphi
 
-토트(Thoth) 라이브러리의 목표는 반복되는 코드(Boilerplate code) 작성을 줄이고, 새로운 개발 패러다임 구현시 필요 기능을 제공하는 것이다.
-이 라이브러리를 그대로 사용하지 말고, 여러분의 프로젝트에 맞게 수정해 사용하기 바란다.
-기능 개선과 기능 추가에 대한 의견을 환영한다.
+토트(Thoth) 라이브러리의 목표는 
+0. 반복되는 코드(Boilerplate code) 작성을 줄이고, 
+1. 새로운 개발 패러다임 구현시 필요 기능을 제공하고, 
+2. 테스트가 용이한 개발 방식을 지원하는 것이다.
 
 ## 주요 기능(Main features)
 * **Thoth.Config** - 환경변수 읽기/쓰기 자동화 객체(Attribute 이용), Thoth.Config.Loader 클래스를 상속해 원하는 자료로 저장(현재 IniFile, SQL Loader 지원)
